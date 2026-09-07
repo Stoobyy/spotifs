@@ -120,15 +120,15 @@ body {
 
 .themes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
 }
 
 .theme {
   -webkit-app-region: no-drag;
   display: block;
   text-align: left;
-  padding: 9px 9px 11px;
+  padding: 7px 7px 10px;
   border-radius: 12px;
   border: 1px solid rgb(var(--panel) / 0.1);
   background: rgb(var(--panel) / 0.04);
@@ -165,7 +165,7 @@ body {
 .theme-art {
   display: block;
   position: relative;
-  height: 74px;
+  height: 60px;
   border-radius: 7px;
   overflow: hidden;
   background: linear-gradient(140deg, #5b4a86 0%, #3a5a7a 52%, #6d4a63 100%);
@@ -234,6 +234,47 @@ body {
 .theme-art-lock .tl-card span {
   width: 18px;
   height: 18px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.8);
+}
+
+.theme-art-split .ts-clock {
+  position: absolute;
+  left: 9%;
+  top: 30%;
+  width: 34%;
+  height: 22%;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.85);
+}
+
+.theme-art-split .ts-date {
+  position: absolute;
+  left: 9%;
+  top: 57%;
+  width: 22%;
+  height: 7%;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.6);
+}
+
+.theme-art-split .ts-card {
+  position: absolute;
+  right: 7%;
+  top: 24%;
+  width: 44%;
+  height: 52%;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.18);
+  border: 0.5px solid rgb(255 255 255 / 0.3);
+  display: flex;
+  align-items: flex-start;
+  padding: 5px;
+}
+
+.theme-art-split .ts-card span {
+  width: 13px;
+  height: 13px;
   border-radius: 3px;
   background: rgb(255 255 255 / 0.8);
 }
@@ -418,7 +459,7 @@ body {
 
 .bgs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 9px;
 }
 
@@ -471,6 +512,18 @@ body {
 .bg-art-cover {
   background: linear-gradient(128deg, #b9628f 0%, #6b4ea8 46%, #2c2148 100%);
   filter: blur(1.5px);
+}
+
+/* The chosen picture, over a placeholder glyph that only shows through while
+   there isn't one. Two layers, so the glyph never stretches with the photo. */
+.bg-art-image {
+  background-color: #2a2c33;
+  background-image: var(--bg-image-preview, none),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.42)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4.5' width='18' height='15' rx='2.5'/%3E%3Ccircle cx='8.6' cy='9.9' r='1.6'/%3E%3Cpath d='M3.4 16.6 8.8 12l4 3.4 3.4-2.8 4.4 4'/%3E%3C/svg%3E");
+  background-size: cover, 21px 21px;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  border: 0.5px solid rgb(var(--panel) / 0.12);
 }
 
 .bg-name {

@@ -100,6 +100,24 @@ body.idle {
   transform: scale(1.28);
 }
 
+/* The user's own picture, when the background is set to Image. Sized like a
+   desktop wallpaper — cover, centred, never repeated — and left unblurred: it
+   was chosen to be looked at. */
+.ambient-image {
+  position: absolute;
+  inset: 0;
+  background-image: var(--bg-image, none);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.6s var(--ease);
+}
+
+:root[data-bg="image"] .ambient-image {
+  opacity: 1;
+}
+
 /* --------------------------------------------------------------------- wash
 
    Three wide, soft colour fields taken from the cover's three busiest hues,
@@ -765,28 +783,30 @@ body.loading .empty {
 }
 
 /* ============================================================================
-   CLASSIC — background options
+   BACKGROUND OPTIONS
 
-   Three ways to fill the screen behind the player, all built from layers that
-   already exist. Scoped to the classic theme; the lock screen keeps the default
-   arrangement, which is what `hues` is.
+   Four ways to fill the screen behind the player, three of them built from
+   layers that already existed. Classic and Split both offer the picker; the
+   lock screen theme is pinned to `hues` in app.js, which is the arrangement the
+   layers have with no rule applied at all — so nothing here needs to name a
+   theme.
    ========================================================================== */
 
 /* --- 2. solid colour ----------------------------------------------------- */
 
-:root[data-theme="classic"][data-bg="solid"] .ambient {
+:root[data-bg="solid"] .ambient {
   background: var(--bg-solid, #161a24);
 }
 
-:root[data-theme="classic"][data-bg="solid"] .ambient-layer,
-:root[data-theme="classic"][data-bg="solid"] .wash {
+:root[data-bg="solid"] .ambient-layer,
+:root[data-bg="solid"] .wash {
   display: none;
 }
 
 /* A flat colour has no shape of its own, so the vignette is the only thing
    keeping the corners from looking like a dead rectangle. Kept, but lighter —
    there is no bright artwork to hold down here. */
-:root[data-theme="classic"][data-bg="solid"] .ambient-veil {
+:root[data-bg="solid"] .ambient-veil {
   background:
     radial-gradient(125% 110% at 50% 34%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0.22) 72%, rgba(0, 0, 0, 0.4) 100%);
 }
@@ -797,22 +817,296 @@ body.loading .empty {
    and the washes get out of the way. Blurring less than the `hues` layer is
    deliberate: at this zoom there is little detail left to hide, and 84px would
    flatten it back into a single tone — which is what `hues` already is. */
-:root[data-theme="classic"][data-bg="cover"] .ambient-layer {
+:root[data-bg="cover"] .ambient-layer {
   filter: blur(52px) saturate(140%) brightness(0.6);
 }
 
-:root[data-theme="classic"][data-bg="cover"] .ambient-layer.is-active {
+:root[data-bg="cover"] .ambient-layer.is-active {
   opacity: 0.96;
   transform: scale(1.85);
 }
 
-:root[data-theme="classic"][data-bg="cover"] .wash {
+:root[data-bg="cover"] .wash {
   display: none;
 }
 
 /* Full-strength artwork behind the type needs the vignette back up. */
-:root[data-theme="classic"][data-bg="cover"] .ambient-veil {
+:root[data-bg="cover"] .ambient-veil {
   background:
     radial-gradient(120% 105% at 50% 32%, rgba(0, 0, 0, 0.1) 14%, rgba(0, 0, 0, 0.44) 66%, rgba(0, 0, 0, 0.68) 100%),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.12) 34%, rgba(0, 0, 0, 0.46) 100%);
+}
+
+/* --- 4. the user's own image --------------------------------------------- */
+
+:root[data-bg="image"] .ambient-layer,
+:root[data-bg="image"] .wash {
+  display: none;
+}
+
+/* Lighter than the cover modes. A wallpaper is a photograph the user picked
+   and framed; crushing it under a heavy vignette to protect the type would
+   defeat the point of offering the option. Enough to keep the corners from
+   competing, and no more. */
+:root[data-bg="image"] .ambient-veil {
+  background:
+    radial-gradient(130% 115% at 50% 34%, rgba(0, 0, 0, 0) 24%, rgba(0, 0, 0, 0.2) 74%, rgba(0, 0, 0, 0.38) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.02) 38%, rgba(0, 0, 0, 0.24) 100%);
+}
+
+/* The grain exists to break up banding across an 84px blur. A real photograph
+   has grain of its own and doesn't need ours on top. */
+:root[data-bg="image"] .ambient-grain {
+  opacity: 0;
+}
+
+/* ============================================================================
+   THEME 3 — split
+
+   The iPadOS landscape lock screen: an oversized clock and date pinned to the
+   left half, the whole player gathered into one wide glass card on the right.
+   Same elements again, rearranged — the clock and date are the ones theme 2
+   already uses, and the card is the stage with its own grid.
+
+   The reference also carries a Spotify mark and an AirPlay button in the card.
+   Neither is here: the first is someone else's logo, and the second is a
+   control this app has no way to honour.
+   ========================================================================== */
+
+/* Tinted rather than white, the way the reference pulls its clock colour out of
+   the wallpaper. The hue is the accent's — so it follows the artwork — but the
+   saturation and lightness are fixed high, well clear of the band the palette
+   clamps the accent into, which is chosen to sit *on* a dark background rather
+   than to be legible as large type over one. */
+:root[data-theme="split"] {
+  --lock-tint: hsl(var(--accent-h) 62% 82%);
+}
+
+:root[data-theme="split"] .lock-head {
+  position: fixed;
+  z-index: 3;
+  top: 50%;
+  left: clamp(30px, 5.2vw, 104px);
+  /* The clock reads above the date here, where theme 2 has them the other way
+     round. One markup order, reversed in flow, rather than two markup trees. */
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  transform: translateY(-52%);
+  text-align: left;
+  pointer-events: none;
+}
+
+:root[data-theme="split"] .lock-clock {
+  font-size: clamp(104px, 14vw, 268px);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  color: var(--lock-tint);
+  text-shadow: 0 4px 40px rgb(0 0 0 / 0.3);
+  transition: color 1s var(--ease);
+  /* The tight leading pulls the box in tighter than the glyphs at this size. */
+  padding-block: 0.08em;
+  margin-block: -0.08em;
+}
+
+:root[data-theme="split"] .lock-date {
+  margin-top: clamp(2px, 0.6vh, 10px);
+  font-size: clamp(22px, 2.6vw, 50px);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--lock-tint);
+  text-shadow: 0 2px 20px rgb(0 0 0 / 0.28);
+  transition: color 1s var(--ease);
+}
+
+:root[data-theme="split"] .chrome-top .clock {
+  /* The big clock already says the time. */
+  opacity: 0;
+}
+
+/* --- the card ------------------------------------------------------------ */
+
+/* .meta stops being a box and hands its children straight to this grid, so the
+   scrubber and the transport can span the full width of the card — under the
+   cover as well as the text — while the title and artist stay beside it. */
+:root[data-theme="split"] .meta {
+  display: contents;
+}
+
+:root[data-theme="split"] .stage {
+  position: fixed;
+  z-index: 2;
+  top: 50%;
+  right: clamp(24px, 4vw, 78px);
+  transform: translateY(-50%);
+  width: min(46vw, 880px);
+  height: auto;
+  padding: clamp(18px, 1.9vw, 32px);
+  border-radius: clamp(24px, 2.2vw, 38px);
+  background: rgb(255 255 255 / 0.14);
+  border: 0.5px solid rgb(255 255 255 / 0.2);
+  box-shadow:
+    0 30px 90px rgb(0 0 0 / 0.32),
+    inset 0 0.5px 0 rgb(255 255 255 / 0.16);
+  backdrop-filter: blur(40px) saturate(180%);
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  /* The cover is taller than the two lines of type beside it; letting the
+     artist's row take up the slack keeps the title pinned to the top of the
+     cover instead of the pair drifting down the middle. */
+  grid-template-rows: auto 1fr auto auto;
+  align-items: start;
+  column-gap: clamp(16px, 1.7vw, 28px);
+  row-gap: clamp(10px, 1.5vh, 22px);
+}
+
+:root[data-theme="split"] .art {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: clamp(104px, 10.5vw, 176px);
+  height: clamp(104px, 10.5vw, 176px);
+}
+
+:root[data-theme="split"] .art-frame {
+  border-radius: clamp(10px, 1vw, 16px);
+}
+
+/* Belongs to theme 1's hero cover; at card size it only smears. */
+:root[data-theme="split"] .art-glow {
+  opacity: 0;
+}
+
+:root[data-theme="split"] .title {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  font-size: clamp(21px, 1.85vw, 36px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.014em;
+  -webkit-line-clamp: 1;
+}
+
+:root[data-theme="split"] .artist {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  margin-top: 0;
+  min-width: 0;
+  font-size: clamp(16px, 1.4vw, 27px);
+  color: rgb(var(--ink) / 0.74);
+}
+
+/* Artist and album on one line, as the reference has them. The attribute
+   selector keeps the em dash off a track with no album. */
+:root[data-theme="split"] .artist[data-album]::after {
+  content: " — " attr(data-album);
+  color: rgb(var(--ink) / 0.74);
+}
+
+:root[data-theme="split"] .album {
+  display: none;
+}
+
+/* --- scrubber ------------------------------------------------------------ */
+
+:root[data-theme="split"] .scrub {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(12px, 1.2vw, 20px);
+}
+
+:root[data-theme="split"] .scrub-track {
+  order: 2;
+  height: 7px;
+  border-radius: 4px;
+  background: rgb(var(--ink) / 0.3);
+}
+
+:root[data-theme="split"] .scrub:hover .scrub-track,
+:root[data-theme="split"] .scrub.is-dragging .scrub-track {
+  height: 9px;
+}
+
+:root[data-theme="split"] .scrub-fill {
+  border-radius: 4px;
+  background: rgb(var(--ink) / 0.94);
+}
+
+/* A plain bar until you reach for it. */
+:root[data-theme="split"] .scrub-knob {
+  opacity: 0;
+}
+
+:root[data-theme="split"] .scrub:hover .scrub-knob {
+  opacity: 1;
+}
+
+/* display:contents so the two times become grid items either side of the bar
+   rather than a row of their own underneath it. */
+:root[data-theme="split"] .times {
+  display: contents;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme="split"] .times > * {
+  font-size: clamp(13px, 1vw, 19px);
+  font-weight: 500;
+  color: rgb(var(--ink) / 0.82);
+}
+
+:root[data-theme="split"] .times > :first-child {
+  order: 1;
+}
+
+:root[data-theme="split"] .times > :last-child {
+  order: 3;
+}
+
+/* --- transport ----------------------------------------------------------- */
+
+:root[data-theme="split"] .controls {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  margin: 0;
+  justify-content: center;
+  gap: clamp(40px, 5vw, 92px);
+}
+
+:root[data-theme="split"] .ctrl {
+  width: clamp(46px, 4vw, 68px);
+  height: clamp(46px, 4vw, 68px);
+  color: rgb(var(--ink) / 0.96);
+}
+
+/* The glyphs carry their size as SVG attributes, which CSS outranks — the card
+   is the whole interface at this size and 23px buttons would look lost in it. */
+:root[data-theme="split"] .ctrl svg {
+  width: clamp(28px, 2.4vw, 42px);
+  height: clamp(28px, 2.4vw, 42px);
+}
+
+:root[data-theme="split"] .ctrl-play svg {
+  width: clamp(32px, 2.7vw, 47px);
+  height: clamp(32px, 2.7vw, 47px);
+}
+
+/* The card is the interface here, so only the window chrome fades on idle —
+   hiding the transport would leave a card with a hole in it. */
+:root[data-theme="split"] body.idle .controls {
+  opacity: 1 !important;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Nothing playing: the clock owns the left half, so the message belongs in the
+   right one, where the card would be. */
+:root[data-theme="split"] .empty {
+  left: 50%;
 }

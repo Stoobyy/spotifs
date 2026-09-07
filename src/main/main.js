@@ -9,6 +9,7 @@ const { SmtcBridge } = require('./smtc');
 const { ArtworkResolver } = require('./artwork');
 const { paletteFor } = require('./palette');
 const fonts = require('./fonts');
+const wallpaper = require('./wallpaper');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ICON_ICO = path.join(ROOT, 'build', 'icon.ico');
@@ -35,9 +36,10 @@ function loadSettings() {
     displayId: null,
     hiResArtwork: true,
     launchAtLogin: false,
-    theme: 'classic', // 'classic' | 'lockscreen'
-    background: 'cover', // classic only: 'cover' | 'hues' | 'solid'
+    theme: 'classic', // 'classic' | 'lockscreen' | 'split'
+    background: 'cover', // 'cover' | 'hues' | 'solid' | 'image' (not lockscreen)
     backgroundColor: '#161a24', // used when background is 'solid'
+    backgroundImage: '', // copy in userData, used when background is 'image'
     fontFamily: '', // '' = the built-in system stack
     clock24h: null, // null = follow the system locale
     customFonts: [], // [{ family, file }]
@@ -46,6 +48,9 @@ function loadSettings() {
     const raw = JSON.parse(fs.readFileSync(settingsPath(), 'utf8'));
     const merged = Object.assign(defaults, raw);
     merged.customFonts = fonts.prune(merged.customFonts);
+    merged.backgroundImage = wallpaper.prune(merged.backgroundImage);
+    // A background of 'image' with no image left is just a black screen.
+    if (merged.background === 'image' && !merged.backgroundImage) merged.background = 'cover';
     return merged;
   } catch (_) {
     return defaults;
@@ -241,6 +246,7 @@ function appearance() {
     theme: settings.theme,
     background: settings.background,
     backgroundColor: settings.backgroundColor,
+    backgroundImage: toFileUrl(settings.backgroundImage),
     fontFamily: settings.fontFamily,
     clock24h: settings.clock24h,
     fontFaceCss: fonts.faceCss(settings.customFonts),
@@ -254,7 +260,7 @@ function pushAppearance() {
 
 /* ----------------------------------------------------------------- settings */
 
-const SETTINGS_SIZE = { width: 460, height: 782 };
+const SETTINGS_SIZE = { width: 460, height: 838 };
 
 function openSettings() {
   if (settingsWin && !settingsWin.isDestroyed()) {
@@ -306,6 +312,17 @@ function displayList() {
   }));
 }
 
+/**
+ * What the settings window sees. The stored background image is an absolute
+ * path, which a renderer can't load; it needs the file URL alongside it for the
+ * preview tile.
+ */
+function settingsForUi() {
+  return Object.assign({}, settings, {
+    backgroundImageUrl: toFileUrl(settings.backgroundImage),
+  });
+}
+
 /** Applies a patch of changed keys, doing whatever each one needs. */
 function applySettings(patch) {
   const before = Object.assign({}, settings);
@@ -330,6 +347,7 @@ function applySettings(patch) {
     'theme' in patch ||
     'background' in patch ||
     'backgroundColor' in patch ||
+    'backgroundImage' in patch ||
     'fontFamily' in patch ||
     'clock24h' in patch ||
     'customFonts' in patch
@@ -385,14 +403,17 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     ipcMain.handle('settings:get', async () => ({
-      settings,
+      settings: settingsForUi(),
       displays: displayList(),
       systemFonts: await fonts.listSystemFonts(),
       // The preview has to be able to name imported faces too.
       fontFaceCss: fonts.faceCss(settings.customFonts),
     }));
 
-    ipcMain.handle('settings:set', (_event, patch) => applySettings(patch || {}));
+    ipcMain.handle('settings:set', (_event, patch) => {
+      applySettings(patch || {});
+      return settingsForUi();
+    });
 
     ipcMain.handle('settings:importFont', async () => {
       const parent = settingsWin && !settingsWin.isDestroyed() ? settingsWin : undefined;
@@ -409,7 +430,7 @@ if (!app.requestSingleInstanceLock()) {
           customFonts: settings.customFonts.concat([record]),
           fontFamily: record.family,
         });
-        return { canceled: false, font: record, settings };
+        return { canceled: false, font: record, settings: settingsForUi() };
       } catch (err) {
         return { canceled: false, error: err.message };
       }
@@ -422,7 +443,38 @@ if (!app.requestSingleInstanceLock()) {
       const patch = { customFonts: settings.customFonts.filter((f) => f.family !== family) };
       // Don't leave the player pointing at a font that no longer exists.
       if (settings.fontFamily === family) patch.fontFamily = '';
-      return applySettings(patch);
+      applySettings(patch);
+      return settingsForUi();
+    });
+
+    ipcMain.handle('settings:importImage', async () => {
+      const parent = settingsWin && !settingsWin.isDestroyed() ? settingsWin : undefined;
+      const result = await dialog.showOpenDialog(parent, {
+        title: 'Choose a background image',
+        properties: ['openFile'],
+        filters: [
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'avif'] },
+        ],
+      });
+      if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+
+      try {
+        const file = wallpaper.importImage(result.filePaths[0], settings.backgroundImage);
+        // Picking a picture is only ever meant one way: show it.
+        applySettings({ backgroundImage: file, background: 'image' });
+        return { canceled: false, settings: settingsForUi() };
+      } catch (err) {
+        return { canceled: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle('settings:clearImage', () => {
+      wallpaper.removeImage(settings.backgroundImage);
+      const patch = { backgroundImage: '' };
+      // 'image' with nothing to show would leave a bare black screen.
+      if (settings.background === 'image') patch.background = 'cover';
+      applySettings(patch);
+      return settingsForUi();
     });
 
     ipcMain.on('settings:close', () => {

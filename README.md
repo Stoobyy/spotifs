@@ -55,19 +55,27 @@ with Windows".
 | --- | --- |
 | **Classic** | Big cover on the left, metadata and controls on the right. |
 | **Lock Screen** | Date and a large clock centred at the top, everything else in one floating glass card low on the screen, after the macOS lock screen. |
+| **Split** | An oversized clock and date tinted from the artwork on the left, the whole player gathered into one wide glass card on the right, after the iPad lock screen. |
 
-Both themes share the same state, so switching is instant and nothing is lost
-either way.
+All three share the same state, so switching is instant and nothing is lost
+whichever you land on.
 
-### Backgrounds (Classic only)
+### Backgrounds
 
 | Option | What it does |
 | --- | --- |
 | **Album hues** | Three soft colour fields taken from the cover's significant hues, drifting slowly past each other over a faint blurred cover. |
 | **Solid colour** | A flat colour of your choosing, with only a light vignette. Pick it with the colour well that appears under the options. |
 | **Blurred cover** | The default. The album art itself, zoomed well past the frame and blurred, at full strength — it keeps the shape of the artwork rather than reducing it to a tone. |
+| **Image** | A picture of your own — `.jpg`, `.png`, `.webp`, `.gif` or `.bmp` — filling the screen like a wallpaper, unblurred and under a much lighter vignette than the cover modes get. |
 
-The Lock Screen theme always uses Album hues.
+Backgrounds apply to the **Classic** and **Split** themes; the Lock Screen theme
+always uses Album hues.
+
+The image you pick is copied into `%APPDATA%\Now Playing\backgrounds`, so moving
+or deleting the original later won't break the display, and only one is kept —
+choosing another replaces it. **Remove** deletes that copy and falls back to the
+blurred cover.
 
 ### Fonts
 
@@ -108,6 +116,9 @@ Spotify  ──▶  Windows System Media Transport Controls
 - **`src/main/palette.js`** — pulls one accent colour from the cover in the main
   process (a `file://` canvas in the renderer would be tainted), with saturation
   and lightness clamped so a loud cover can't blow out the interface.
+- **`src/main/wallpaper.js`** — copies a chosen background image into userData
+  and hands the renderer its `file://` URL, so the picture survives the original
+  being moved.
 - **`src/main/fonts.js`** — enumerates installed families (via PowerShell's
   `InstalledFontCollection`) and copies imported font files into userData,
   handing the renderer `@font-face` rules pointing at them.

@@ -48,6 +48,16 @@
             <span class="theme-name">Lock Screen</span>
             <span class="theme-note">Clock, date, glass card</span>
           </button>
+
+          <button class="theme" data-theme="split" type="button">
+            <span class="theme-art theme-art-split" aria-hidden="true">
+              <span class="ts-clock"></span>
+              <span class="ts-date"></span>
+              <span class="ts-card"><span></span></span>
+            </span>
+            <span class="theme-name">Split</span>
+            <span class="theme-note">Big clock left, card right</span>
+          </button>
         </div>
       </section>
 
@@ -66,6 +76,10 @@
             <span class="bg-art bg-art-hues" aria-hidden="true"></span>
             <span class="bg-name">Album hues</span>
           </button>
+          <button class="bg" data-bg="image" type="button">
+            <span class="bg-art bg-art-image" aria-hidden="true"></span>
+            <span class="bg-name">Image</span>
+          </button>
         </div>
         <div class="colour-row" id="bgColorRow" hidden>
           <input type="color" id="bgColor" aria-label="Background colour" />
@@ -74,7 +88,11 @@
             <span class="colour-hex" id="bgColorHex">#161a24</span>
           </label>
         </div>
-        <p class="hint">Applies to the Classic theme.</p>
+        <div class="row row-actions" id="bgImageRow" hidden>
+          <button class="btn" id="bgImageBtn" type="button">Choose image…</button>
+          <button class="btn btn-quiet" id="bgImageClear" type="button" hidden>Remove</button>
+        </div>
+        <p class="hint" id="bgHint">Applies to the Classic and Split themes.</p>
       </section>
 
       <section class="group">

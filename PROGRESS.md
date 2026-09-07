@@ -29,11 +29,14 @@ default "generic dark UI with a purple gradient" look.
 | Window mode | Frameless window sized to the display, **not** Electron full screen | Full screen bought nothing visually — the window is already frameless — and on Windows, hiding a full-screen window left the compositor holding a black surface the user had to alt-tab out of. `resizable: false` / `thickFrame: false` additionally drop the DWM caption hairline along the top edge and Windows 11's rounded corners. Costs the window shadow and the open/close animation. |
 | Background motion | Three gradient washes animated on the compositor | The Apple Music read: colour that shifts slowly enough that you notice it without catching it moving. Transform and opacity only — no blur, no `mix-blend-mode`, no JS — so frames cost GPU compositing and nothing on the CPU. The blurred cover behind them became static, which is *cheaper* than the drift it replaced, and was dropped to `opacity: 0.4` so the washes have something to read against rather than competing with a full-screen flat tone. |
 | Themes | One set of elements and one set of state code, rearranged per theme by a `data-theme` attribute | The lock-screen layout is a different arrangement of exactly the same title, artist, artwork, scrubber and controls. Two markup trees would have meant two of every state update; this way `app.js` never knows which theme is on. |
-| Classic backgrounds | Three modes built from layers that already existed, switched by a `data-bg` attribute | Album hues is the existing arrangement. Solid hides the cover and washes and paints `.ambient` flat. Blurred cover brings the cover layer to full strength, zooms it to 1.85 and drops the washes. No new elements, and each mode reuses the vignette at a strength that suits it. |
+| Backgrounds | Four modes built from layers that already existed, switched by a `data-bg` attribute | Album hues is the existing arrangement. Solid hides the cover and washes and paints `.ambient` flat. Blurred cover brings the cover layer to full strength, zooms it to 1.85 and drops the washes. No new elements bar the image layer, and each mode reuses the vignette at a strength that suits it. Classic and Split both offer the picker; the lock screen theme is pinned to `hues` in `app.js` rather than every rule in the block having to name the themes it applies to. |
 | Which wash hues are real | A bin must carry 18% of the busiest bin's weight to earn a wash; anything short of that is ignored, and missing washes are filled with neighbours 14° either side of the dominant hue | The first version took the three busiest bins with any weight at all, so a cover with a few percent of an unrelated colour promoted it to a full-screen field — the backdrop showed colours the artwork didn't. The old fallback fanned out 38° and 76°, which invented hues outright on a single-colour cover. |
 | Blur radius per background | 84px for hues, 52px for blurred cover | At 1.85 zoom there is little detail left to hide, and 84px would flatten the cover back into a single tone — which is exactly what Album hues already is. The two modes have to look different to be worth having. |
 | Font choice | Family name prepended to the built-in stack, never replacing it | A font that is missing a glyph — or that gets uninstalled — degrades to the default rather than to whatever the OS picks. Imported files are copied into userData so moving the original doesn't break the display. |
 | Font enumeration | PowerShell `InstalledFontCollection` | Electron has no API for this. Chromium's `queryLocalFonts()` exists but needs a permission grant and a secure context; the machine already depends on PowerShell for the bridge, so this adds nothing new. |
+| Background image | One picture, copied into userData, replaced rather than collected | Same bargain as an imported font: the display can't break because the original moved. A library of wallpapers would need a grid, thumbnails and a delete affordance for something the user changes about twice a year. |
+| Split theme | Third `data-theme` arrangement, no new markup | The iPad lock screen is the same clock, date, cover, title, scrubber and transport again. `.meta` becomes `display: contents` so the scrubber and transport can span the full width of the card while the title sits beside the cover — the only structural thing theme 2 didn't already need. |
+| Split clock tint | Accent *hue*, but fixed high saturation and lightness | The reference pulls its clock colour out of the wallpaper. The accent follows the artwork, but the palette clamps it to L 48–68 for sitting *on* a dark background, which is too dark for 260px of type over one. |
 | Settings surface | A window, not a growing tray menu | Themes and a font list don't fit a context menu. The tray is back to three items — Open, Settings, Quit — and everything configurable moved into the window. |
 | Artwork | SMTC thumbnail, upgraded via iTunes Search API | Spotify only publishes ~300px, which is mushy at full screen. The upgrade is best-effort and cached; the thumbnail is always the fallback. |
 | Accent colour | Extracted in the main process, clamped | A `file://` canvas in the renderer would be tainted, so extraction happens in Node. Saturation and lightness are clamped into a narrow band so a loud cover can't blow the interface out. |
@@ -53,6 +56,7 @@ D:\spotifs
     │   ├── smtc-bridge.ps1       WinRT poller; JSON out, commands in
     │   ├── artwork.js            hi-res cover lookup + disk cache
     │   ├── fonts.js              installed-font list, font import, @font-face
+    │   ├── wallpaper.js          background-image import into userData
     │   └── palette.js            accent + wash hues from the cover
     └── renderer/
         ├── index.html            markup + inline SF-style control glyphs
@@ -89,18 +93,26 @@ Spotify ──▶ Windows System Media Transport Controls
   becomes visible.
   Hues crossfade between tracks through `@property`-typed custom properties, and
   are unwrapped first so the interpolation takes the short way round the wheel.
-- Two themes, switchable live from Settings: **Classic** (big cover, landscape)
-  and **Lock Screen** (centred date and large clock, transport in a floating
-  glass card, after macOS). Same elements, rearranged by `data-theme`.
-- Three Classic backgrounds, switchable live: the cover zoomed to 1.85 and
-  blurred at full strength (the default), album hues (the drifting washes), or
-  a solid colour chosen with a colour well. Measured 21/255 mean apart from the hues mode on
-  structured artwork, so the choice is visible rather than nominal.
+- Three themes, switchable live from Settings: **Classic** (big cover,
+  landscape), **Lock Screen** (centred date and large clock, transport in a
+  floating glass card, after macOS) and **Split** (oversized tinted clock and
+  date left, one wide glass card right, after the iPad lock screen). Same
+  elements, rearranged by `data-theme`.
+- Four backgrounds for Classic and Split, switchable live: the cover zoomed to
+  1.85 and blurred at full strength (the default), album hues (the drifting
+  washes), a solid colour chosen with a colour well, or an image of the user's
+  own. Measured 21/255 mean apart from the hues mode on structured artwork, so
+  the choice is visible rather than nominal.
+- Background image import: `.jpg` / `.png` / `.webp` / `.gif` / `.bmp` / `.avif`,
+  copied into userData and shown full-bleed under a lighter vignette than the
+  cover modes use. One at a time — a new pick replaces and deletes the old copy.
+  A file that disappears underneath the app drops the mode back to blurred cover
+  on next launch rather than showing a black screen.
 - Any installed font, or an imported `.ttf` / `.otf` / `.ttc` / `.woff` /
   `.woff2`, with a live preview in Settings. Imported files are copied into
   userData; a removed or uninstalled font falls back rather than breaking.
-- Settings window (tray -> Settings): theme, font, clock format, display picker,
-  high-resolution artwork, start with Windows. Every control writes straight
+- Settings window (tray -> Settings): theme, background, font, clock format,
+  display picker, high-resolution artwork, start with Windows. Every control writes straight
   through to the main process; there is no save button.
 - Playback: play/pause, next, previous, drag-to-scrub, ±5s seek. Commands are
   applied optimistically so the UI never waits on Spotify to acknowledge.
@@ -164,10 +176,22 @@ Spotify ──▶ Windows System Media Transport Controls
   idle (chrome hidden) and empty states all check out, and the progress bar
   ticks correctly between frames. *Predates the wash work.*
 
+- The Split theme and the image background, rendered at 1600x900 through the
+  real `index.html` / `styles.css` / `app.js` with mocked state: the layout
+  matches the reference — clock and date left, cover, title, `Artist — Album`,
+  full-width scrubber with the times either side and centred transport in the
+  card — across all four backgrounds, plus the empty state, which keeps the
+  clock and moves the message into the right half. The lock screen theme was
+  rendered in the same pass with `background: 'solid'` set and correctly ignored
+  it. The image loads over `file://`, which is the path the app actually uses.
+- The settings window rendered against a mocked settings API: three theme tiles,
+  four background tiles, and the image tile previewing the picture it selects.
+
 ## Not yet verified — needs a run on the machine
 
 - The settings window against a real font list, and an actual font import.
-- Theme 2 on the machine: it has been rendered headless and measured, not run.
+- An actual image import through the file dialog, and the copy into userData.
+- Themes 2 and 3 on the machine: they have been rendered headless, not run.
 - The washes against real album art on the actual machine. They have been
   measured and eyeballed in a headless render with synthetic covers only.
 - Whether Spotify exposes seek through the session (it varies by build).
@@ -194,6 +218,9 @@ Spotify ──▶ Windows System Media Transport Controls
   fallback stack with no explanation. There is no size cap either. Neither is
   dangerous — the file is only ever handed to the renderer as a `@font-face`
   source — but the failure is silent, which is the part worth fixing.
+- **A background image is checked by extension, not by content**, and there is
+  no size cap — the same silent failure the font importer has, for the same
+  reason, and worth fixing in the same change.
 - **Installed fonts are listed once per app run** and cached. A font installed
   while the app is open won't appear until it is restarted.
 

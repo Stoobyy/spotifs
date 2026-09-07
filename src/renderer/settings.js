@@ -13,6 +13,10 @@ const dom = {
   bgColorRow: el('bgColorRow'),
   bgColor: el('bgColor'),
   bgColorHex: el('bgColorHex'),
+  bgImageRow: el('bgImageRow'),
+  bgImageBtn: el('bgImageBtn'),
+  bgImageClear: el('bgImageClear'),
+  bgHint: el('bgHint'),
   fontSelect: el('fontSelect'),
   fontPreview: el('fontPreview'),
   fontHint: el('fontHint'),
@@ -24,6 +28,8 @@ const dom = {
   loginToggle: el('loginToggle'),
   closeBtn: el('closeBtn'),
 };
+
+const BG_HINT = 'Applies to the Classic and Split themes.';
 
 const DEFAULT_HINT =
   "Any font installed on this PC, or import a .ttf, .otf, .ttc, .woff or .woff2.";
@@ -95,8 +101,8 @@ function renderFontOptions() {
 }
 
 function renderBackground() {
-  // Background only means anything for the classic theme.
-  dom.bgGroup.hidden = state.theme !== 'classic';
+  // The lock screen theme is its own backdrop; the other two take a choice.
+  dom.bgGroup.hidden = state.theme === 'lockscreen';
 
   Array.from(dom.bgs.querySelectorAll('.bg')).forEach((button) => {
     button.classList.toggle('is-active', button.dataset.bg === state.background);
@@ -106,8 +112,19 @@ function renderBackground() {
   dom.bgColorRow.hidden = state.background !== 'solid';
   dom.bgColor.value = colour;
   dom.bgColorHex.textContent = colour;
-  // Keeps the "Solid colour" tile showing the colour it actually selects.
-  document.documentElement.style.setProperty('--bg-solid-preview', colour);
+
+  dom.bgImageRow.hidden = state.background !== 'image';
+  dom.bgImageBtn.textContent = state.backgroundImage ? 'Change image…' : 'Choose image…';
+  dom.bgImageClear.hidden = !state.backgroundImage;
+
+  // Both tiles are the real preview: the swatch shows the colour it selects,
+  // and the image tile shows the picture it selects.
+  const root = document.documentElement.style;
+  root.setProperty('--bg-solid-preview', colour);
+  root.setProperty(
+    '--bg-image-preview',
+    state.backgroundImageUrl ? `url("${state.backgroundImageUrl}")` : 'none'
+  );
 }
 
 function renderPreview() {
@@ -155,7 +172,32 @@ dom.themes.addEventListener('click', (event) => {
 
 dom.bgs.addEventListener('click', (event) => {
   const button = event.target.closest('.bg');
-  if (button) apply({ background: button.dataset.bg });
+  if (!button) return;
+  // Choosing Image with nothing imported yet would switch to a blank screen and
+  // leave the user to find the button underneath, so go straight to the picker.
+  if (button.dataset.bg === 'image' && !state.backgroundImage) chooseImage();
+  else apply({ background: button.dataset.bg });
+});
+
+async function chooseImage() {
+  const result = await window.settingsApi.importImage();
+  if (result.canceled) return;
+  if (result.error) {
+    dom.bgHint.textContent = result.error;
+    dom.bgHint.classList.add('is-error');
+    return;
+  }
+  dom.bgHint.textContent = BG_HINT;
+  dom.bgHint.classList.remove('is-error');
+  state = result.settings;
+  render();
+}
+
+dom.bgImageBtn.addEventListener('click', chooseImage);
+
+dom.bgImageClear.addEventListener('click', async () => {
+  state = await window.settingsApi.clearImage();
+  render();
 });
 
 // 'input' fires continuously while dragging in the picker, which is what makes
