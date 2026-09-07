@@ -336,24 +336,26 @@ body.no-art .art-glow {
   min-width: 0;
 }
 
+/* Truncated in app.js rather than by -webkit-line-clamp.
+
+   The design wants line-height 1.08, which is far tighter than any of these
+   fonts' content area (Segoe UI needs 1.33, SF Pro Rounded 1.19), so glyph ink
+   spills outside the box. Clamping requires overflow:hidden, which then shears
+   the ink off. Padding the box to cover the spill is worse still: it extends
+   the clip region far enough to reveal the top of the *next* line under the
+   ellipsis.
+
+   Fitting the string to the available lines in JS sidesteps all of it — the
+   element only ever holds text that fits, so nothing needs clipping and the
+   tight leading survives. --title-lines is what app.js fits to. */
 .title {
   font-size: clamp(30px, 2.65vw, 48px);
   font-weight: 600;
   line-height: 1.08;
   letter-spacing: -0.022em;
   color: rgb(var(--ink) / 0.98);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  /* 1.08 is tighter than the font's natural line height (~1.33em), so the
-     half-leading is negative and the glyphs overflow the content box — which
-     the overflow:hidden that line-clamp requires then shears off, taking the
-     tops of the t's and the tails of the y's. Pad the box out to cover the
-     overflow and pull the same amount back off the margin, so the ink has room
-     but the layout does not move. */
-  padding-block: 0.34em;
-  margin-block: -0.34em;
+  --title-lines: 2;
+  overflow-wrap: anywhere;
 }
 
 .artist {
@@ -694,7 +696,7 @@ body.loading .empty {
   font-weight: 600;
   line-height: 1.22;
   letter-spacing: -0.012em;
-  -webkit-line-clamp: 1;
+  --title-lines: 1;
 }
 
 :root[data-theme="lockscreen"] .artist {

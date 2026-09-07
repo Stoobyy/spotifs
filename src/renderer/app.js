@@ -36,6 +36,9 @@ const faceStyle = document.createElement('style');
 document.head.appendChild(faceStyle);
 
 let clock24h = null;
+// Seeded from the markup: appearance arrives before the first state, and
+// fitTitle would otherwise blank the "Nothing playing" placeholder.
+let titleText = dom.title.textContent;
 
 const track = {
   key: '',
@@ -145,7 +148,8 @@ function onState(state) {
   dom.scrub.classList.toggle('is-disabled', !track.canSeek);
 
   if (changed || state.force) {
-    dom.title.textContent = state.title || 'Nothing playing';
+    titleText = state.title || 'Nothing playing';
+    fitTitle();
     dom.artist.textContent = state.artist || '';
     dom.album.textContent = state.album || '';
     // Theme 2 renders "Artist — Album" as one line, off this attribute.
@@ -329,6 +333,42 @@ function wake() {
   window.addEventListener(type, wake, { passive: true })
 );
 
+/* -------------------------------------------------------------- title fit */
+
+/**
+ * Trims the title to whatever fits in --title-lines lines and appends an
+ * ellipsis, so the element never holds more text than it can show.
+ *
+ * This replaces -webkit-line-clamp, which needs overflow:hidden and therefore
+ * shears the ink off type set tighter than the font's own line height. Binary
+ * search, so a 120-character title costs about seven layout reads — once per
+ * track, not per frame.
+ */
+function fitTitle() {
+  const el = dom.title;
+  el.textContent = titleText;
+
+  const styles = getComputedStyle(el);
+  const lines = parseInt(styles.getPropertyValue('--title-lines'), 10) || 2;
+  const lineHeight = parseFloat(styles.lineHeight);
+  if (!Number.isFinite(lineHeight)) return;
+
+  // Half a line of tolerance: scrollHeight rounds, and the last line's
+  // descenders can push it a fraction past the exact multiple.
+  const max = lineHeight * (lines + 0.5);
+  if (el.scrollHeight <= max) return;
+
+  let lo = 0;
+  let hi = titleText.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    el.textContent = titleText.slice(0, mid).trimEnd() + '…';
+    if (el.scrollHeight <= max) lo = mid;
+    else hi = mid - 1;
+  }
+  el.textContent = titleText.slice(0, lo).trimEnd() + '…';
+}
+
 /* --------------------------------------------------------------- appearance */
 
 function applyAppearance(appearance) {
@@ -350,6 +390,11 @@ function applyAppearance(appearance) {
 
   clock24h = appearance.clock24h;
   tickClock();
+
+  // Theme changes the line budget and font changes the metrics; both need a
+  // refit, and a newly declared face may still be loading.
+  fitTitle();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
 }
 
 /* -------------------------------------------------------------------- clock */
@@ -396,6 +441,7 @@ window.player.onVisibility((isVisible) => {
   ensureLoop();
 });
 
+window.addEventListener('resize', fitTitle);
 window.player.onState(onState);
 window.player.onAppearance(applyAppearance);
 window.player.ready();
