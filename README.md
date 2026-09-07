@@ -63,9 +63,9 @@ either way.
 
 | Option | What it does |
 | --- | --- |
-| **Album hues** | The default. Three soft colour fields taken from the cover's three busiest hues, drifting slowly past each other over a faint blurred cover. |
+| **Album hues** | Three soft colour fields taken from the cover's significant hues, drifting slowly past each other over a faint blurred cover. |
 | **Solid colour** | A flat colour of your choosing, with only a light vignette. Pick it with the colour well that appears under the options. |
-| **Blurred cover** | The album art itself, zoomed well past the frame and blurred, at full strength. Keeps the shape of the artwork rather than reducing it to a tone. |
+| **Blurred cover** | The default. The album art itself, zoomed well past the frame and blurred, at full strength — it keeps the shape of the artwork rather than reducing it to a tone. |
 
 The Lock Screen theme always uses Album hues.
 

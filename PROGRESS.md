@@ -30,6 +30,7 @@ default "generic dark UI with a purple gradient" look.
 | Background motion | Three gradient washes animated on the compositor | The Apple Music read: colour that shifts slowly enough that you notice it without catching it moving. Transform and opacity only — no blur, no `mix-blend-mode`, no JS — so frames cost GPU compositing and nothing on the CPU. The blurred cover behind them became static, which is *cheaper* than the drift it replaced, and was dropped to `opacity: 0.4` so the washes have something to read against rather than competing with a full-screen flat tone. |
 | Themes | One set of elements and one set of state code, rearranged per theme by a `data-theme` attribute | The lock-screen layout is a different arrangement of exactly the same title, artist, artwork, scrubber and controls. Two markup trees would have meant two of every state update; this way `app.js` never knows which theme is on. |
 | Classic backgrounds | Three modes built from layers that already existed, switched by a `data-bg` attribute | Album hues is the existing arrangement. Solid hides the cover and washes and paints `.ambient` flat. Blurred cover brings the cover layer to full strength, zooms it to 1.85 and drops the washes. No new elements, and each mode reuses the vignette at a strength that suits it. |
+| Which wash hues are real | A bin must carry 18% of the busiest bin's weight to earn a wash; anything short of that is ignored, and missing washes are filled with neighbours 14° either side of the dominant hue | The first version took the three busiest bins with any weight at all, so a cover with a few percent of an unrelated colour promoted it to a full-screen field — the backdrop showed colours the artwork didn't. The old fallback fanned out 38° and 76°, which invented hues outright on a single-colour cover. |
 | Blur radius per background | 84px for hues, 52px for blurred cover | At 1.85 zoom there is little detail left to hide, and 84px would flatten the cover back into a single tone — which is exactly what Album hues already is. The two modes have to look different to be worth having. |
 | Font choice | Family name prepended to the built-in stack, never replacing it | A font that is missing a glyph — or that gets uninstalled — degrades to the default rather than to whatever the OS picks. Imported files are copied into userData so moving the original doesn't break the display. |
 | Font enumeration | PowerShell `InstalledFontCollection` | Electron has no API for this. Chromium's `queryLocalFonts()` exists but needs a permission grant and a secure context; the machine already depends on PowerShell for the bridge, so this adds nothing new. |
@@ -91,9 +92,9 @@ Spotify ──▶ Windows System Media Transport Controls
 - Two themes, switchable live from Settings: **Classic** (big cover, landscape)
   and **Lock Screen** (centred date and large clock, transport in a floating
   glass card, after macOS). Same elements, rearranged by `data-theme`.
-- Three Classic backgrounds, switchable live: album hues (the drifting washes),
-  a solid colour chosen with a colour well, or the cover zoomed to 1.85 and
-  blurred at full strength. Measured 21/255 mean apart from the hues mode on
+- Three Classic backgrounds, switchable live: the cover zoomed to 1.85 and
+  blurred at full strength (the default), album hues (the drifting washes), or
+  a solid colour chosen with a colour well. Measured 21/255 mean apart from the hues mode on
   structured artwork, so the choice is visible rather than nominal.
 - Any installed font, or an imported `.ttf` / `.otf` / `.ttc` / `.woff` /
   `.woff2`, with a live preview in Settings. Imported files are copied into

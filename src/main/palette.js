@@ -15,7 +15,18 @@ const NEUTRAL = { h: 220, s: 10, l: 60, hues: [220, 258, 182] };
 
 // Two washes drifting past a third read as slowly shifting colour. Any closer
 // than this in hue and the movement stops being visible.
-const HUE_SPREAD = 34;
+const HUE_SPREAD = 26;
+
+// A hue has to account for at least this share of the busiest bin's weight
+// before it earns a wash. Without a floor, a cover with a few percent of some
+// unrelated colour promotes it to a full-screen field, which is what made the
+// backdrop look like it had colours the artwork doesn't.
+const MIN_SHARE = 0.18;
+
+// When a cover genuinely has only one or two hues, the rest are derived as
+// close neighbours of the dominant one. Fanning further out invents colours
+// that are nowhere in the artwork.
+const ANALOGOUS_STEP = 14;
 
 function paletteFor(filePath) {
   if (!filePath) return NEUTRAL;
@@ -77,16 +88,22 @@ function analyse(bitmap, size) {
   const best = ranked[0];
   const hue = binHue(best);
 
-  // The three busiest bins that aren't near-neighbours, for the ambient washes.
-  // Same scan, same bins — this costs a sort over 24 entries and nothing else.
+  // The busiest bins that aren't near-neighbours *and* carry real weight, for
+  // the ambient washes. Same scan, same bins — a sort over 24 entries.
+  const floor = best.weight * MIN_SHARE;
   const hues = [];
   for (const bin of ranked) {
+    if (bin.weight < floor) break; // ranked descending, so nothing after this qualifies
     const candidate = binHue(bin);
     if (hues.every((existing) => hueGap(existing, candidate) >= HUE_SPREAD)) hues.push(candidate);
     if (hues.length === 3) break;
   }
-  // A single-hue cover still needs three: fan them out around the accent.
-  while (hues.length < 3) hues.push(Math.round((hue + hues.length * 38) % 360));
+  // A cover with only one significant hue still needs three washes. Sit them
+  // either side of the dominant hue so the backdrop stays in its colour family.
+  const offsets = [0, ANALOGOUS_STEP, -ANALOGOUS_STEP, 2 * ANALOGOUS_STEP];
+  for (let i = 1; hues.length < 3; i += 1) {
+    hues.push(Math.round((hue + offsets[i] + 360) % 360));
+  }
 
   return {
     h: Math.round(hue),

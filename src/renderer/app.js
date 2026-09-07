@@ -335,7 +335,7 @@ function applyAppearance(appearance) {
   if (!appearance) return;
 
   document.documentElement.dataset.theme = appearance.theme || 'classic';
-  document.documentElement.dataset.bg = appearance.background || 'hues';
+  document.documentElement.dataset.bg = appearance.background || 'cover';
   document.documentElement.style.setProperty(
     '--bg-solid',
     appearance.backgroundColor || '#161a24'

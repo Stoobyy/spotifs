@@ -36,7 +36,7 @@ function loadSettings() {
     hiResArtwork: true,
     launchAtLogin: false,
     theme: 'classic', // 'classic' | 'lockscreen'
-    background: 'hues', // classic only: 'hues' | 'solid' | 'cover'
+    background: 'cover', // classic only: 'cover' | 'hues' | 'solid'
     backgroundColor: '#161a24', // used when background is 'solid'
     fontFamily: '', // '' = the built-in system stack
     clock24h: null, // null = follow the system locale
