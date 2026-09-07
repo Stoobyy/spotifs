@@ -81,8 +81,8 @@ anything it lacks still falls back cleanly.
 The installed-font list is read once when the app starts. Install a font while
 it's running and you'll need to restart before it shows up.
 
-The clock, controls and close button fade out after ~3 seconds of stillness and
-come back on any mouse movement.
+The controls and close button fade out after ~3 seconds of stillness and come
+back on any mouse movement. The clock stays.
 
 ## How it works
 

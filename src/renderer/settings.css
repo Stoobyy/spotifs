@@ -17,6 +17,13 @@
   box-sizing: border-box;
 }
 
+/* Any element given its own display value outranks the UA's [hidden] rule, so
+   toggling .hidden from JS silently does nothing. .colour-row is display:flex
+   and hit exactly that. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -444,12 +451,15 @@ body {
   overflow: hidden;
 }
 
+/* closest-side on a 42px-tall tile produced three hard little dots. Sized
+   ellipses that overflow the tile and fade out slowly read like the real
+   thing: wide fields overlapping, no visible edges. */
 .bg-art-hues {
   background:
-    radial-gradient(closest-side at 22% 30%, #7d5fd0 0%, transparent 70%),
-    radial-gradient(closest-side at 78% 62%, #c4739e 0%, transparent 70%),
-    radial-gradient(closest-side at 55% 20%, #3f9fb0 0%, transparent 70%),
-    #241d33;
+    radial-gradient(85% 135% at 16% 24%, rgba(151, 106, 226, 0.95) 0%, rgba(151, 106, 226, 0) 64%),
+    radial-gradient(78% 125% at 84% 72%, rgba(212, 120, 166, 0.9) 0%, rgba(212, 120, 166, 0) 62%),
+    radial-gradient(72% 120% at 50% 112%, rgba(72, 166, 190, 0.85) 0%, rgba(72, 166, 190, 0) 64%),
+    linear-gradient(152deg, #2b2242 0%, #1a1630 100%);
 }
 
 /* Mirrors the chosen colour, so the tile is the actual preview. */

@@ -106,7 +106,9 @@ Spotify ──▶ Windows System Media Transport Controls
   applied optimistically so the UI never waits on Spotify to acknowledge.
 - Keyboard: `Space`, `←`/`→`, `N`/`P`, `Esc`.
 - Chrome auto-hides after ~3s of stillness (cursor included) and returns on
-  movement; artwork, type and progress stay.
+  movement; artwork, type, progress and the clock stay. The clock is deliberately
+  outside the fading group — the fade is carried by the close button and the
+  transport controls individually, not by their container.
 - Per-track accent colour, crossfaded artwork and ambient layers, staggered
   text entrance on track change.
 - Progress extrapolated between session updates, so the bar glides rather than
