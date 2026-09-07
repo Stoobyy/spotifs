@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 6 September 2026
+Last updated: 7 September 2026
 
 ## What we're building
 
@@ -76,8 +76,7 @@ Spotify ──▶ Windows System Media Transport Controls
 
 **Working features**
 
-- Tray icon with open, multi-monitor display picker, high-resolution artwork
-  toggle, start-with-Windows toggle, and quit. Settings persist to disk.
+- Tray icon with Open, Settings and Quit. Settings persist to disk.
 - Full-screen player: ambient artwork backdrop (blurred, vignetted), hero cover
   with hairline edge and drop shadow, two-line clamped title, artist, album,
   hairline scrubber, transport controls, clock.
@@ -181,6 +180,13 @@ Spotify ──▶ Windows System Media Transport Controls
 - **Artwork resolution** depends on the iTunes catalogue having the album and on
   a working connection; otherwise it's Spotify's ~300px thumbnail upscaled.
 - **Windows only**, by design — SMTC is a Windows API.
+- **Font import is checked by extension, not by content.** A renamed file will
+  be accepted, copied, and then simply fail to load, leaving the display on the
+  fallback stack with no explanation. There is no size cap either. Neither is
+  dangerous — the file is only ever handed to the renderer as a `@font-face`
+  source — but the failure is silent, which is the part worth fixing.
+- **Installed fonts are listed once per app run** and cached. A font installed
+  while the app is open won't appear until it is restarted.
 
 ## Future scope
 
@@ -208,7 +214,10 @@ rather than a replacement, so the app still works offline and without a login.
 - A restrained audio-reactive element — the temptation here is a spectrum
   analyser, which would undo the whole design; something much quieter, if
   anything.
-- Adaptive light theme for bright covers in bright rooms.
+- More themes. The `data-theme` split means a new one is a block of CSS and an
+  entry in the picker, with no new state code — an adaptive light theme for
+  bright covers in bright rooms is the obvious next one, and a minimal
+  cover-only screen with no chrome at all is the other.
 - Tune the washes across a wide spread of covers. The opacities and the 34°
   minimum hue separation are first guesses, and very dark covers may still read
   flat.
@@ -217,6 +226,11 @@ rather than a replacement, so the app still works offline and without a login.
 
 - Package and sign the installer; auto-update.
 - Cap the artwork cache and prune it.
+- Validate imported fonts by actually loading them, and report the failure in
+  the settings window rather than falling back silently. A size cap belongs in
+  the same change.
+- Re-read the installed font list when the settings window opens rather than
+  once per run.
 - Move the bridge poll from a fixed 220ms interval to event subscriptions
   (`MediaPropertiesChanged`, `PlaybackInfoChanged`) to cut idle CPU further.
 - Measure the renderer on a low-end machine. The washes are *designed* to be

@@ -43,6 +43,7 @@ Produces an NSIS installer under `dist\`.
 | Next / previous | `N` / `P`, or the side buttons |
 | Seek ±5s | `←` / `→` |
 | Scrub | Drag the progress bar |
+| Close Settings | `Esc`, or the ✕ top-right |
 
 Right-click the tray icon and choose **Settings** for themes, fonts, the clock
 format, the display picker (multi-monitor), high-resolution artwork and "Start
@@ -62,9 +63,13 @@ instant and nothing is lost either way.
 
 Pick any font installed on the PC, or **Import font file…** to use one that
 isn't installed — `.ttf`, `.otf`, `.ttc`, `.woff` or `.woff2`. Imported files
-are copied into the app's data folder, so moving or deleting the original later
-won't break the display. The chosen font is layered on top of the built-in
-stack rather than replacing it, so anything it lacks still falls back cleanly.
+are copied into `%APPDATA%\Now Playing\fonts`, so moving or deleting the
+original later won't break the display; **Remove** deletes that copy. The chosen
+font is layered on top of the built-in stack rather than replacing it, so
+anything it lacks still falls back cleanly.
+
+The installed-font list is read once when the app starts. Install a font while
+it's running and you'll need to restart before it shows up.
 
 The clock, controls and close button fade out after ~3 seconds of stillness and
 come back on any mouse movement.
@@ -115,6 +120,11 @@ should keep working.
 output — `[smtc]` lines report PowerShell-side problems. The script is invoked
 with `-ExecutionPolicy Bypass`, so a locked-down execution policy shouldn't
 block it, but a managed machine may still refuse.
+
+**An imported font does nothing.** The importer checks the file extension, not
+the file, so a mis-named or corrupt font is accepted and then quietly fails to
+load — the display stays on the default stack. Try the file in another app to
+confirm it's really a font.
 
 **Artwork is soft.** Turn on "High-resolution artwork" in Settings; it
 needs a working internet connection and only matches albums that exist in the

@@ -4,3 +4,12 @@ dist/
 
 # Generated screenshots/scratch output
 Claude outputs/
+
+# Font files dropped in the root to exercise the importer. Most fonts are
+# licensed separately and are not ours to redistribute — SF Pro among them.
+# Fonts that genuinely ship with the app belong under build/ or src/.
+/*.otf
+/*.ttf
+/*.ttc
+/*.woff
+/*.woff2
