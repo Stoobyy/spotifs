@@ -1,0 +1,204 @@
+# Progress
+
+Last updated: 6 September 2026
+
+## What we're building
+
+A full-screen now-playing display for Spotify on Windows.
+
+The app lives in the system tray. Click the tray icon and the current track
+fills the screen — album art, title, artist, progress, transport controls — in a
+landscape layout built for a laptop. Closing it drops back to the tray; Spotify
+itself is never touched.
+
+The starting reference was an iOS lock-screen now-playing shot: big cover, a
+soft colour wash pulled from the artwork, minimal type. The brief was to keep
+that mood but land it in landscape, as a real desktop surface rather than a
+lock-screen imitation, and to follow Apple's design language rather than the
+default "generic dark UI with a purple gradient" look.
+
+## Decisions
+
+| Decision | Choice | Why / what we gave up |
+| --- | --- | --- |
+| Now-playing data | Windows System Media Transport Controls (SMTC) | No Spotify login, no developer app, no client modification — it works the moment Spotify plays. Costs us a few things the Web API would give (see limitations). Spotify Web API stays the documented fallback. |
+| Trigger surface | System tray icon | Stays out of the way; no always-on-top widget cluttering the desktop, no dependency on Spicetify being installed and surviving Spotify updates. |
+| Stack | Electron | Web tech gives the fine visual control this design needs (large-radius blur, colour mixing, precise typography), and packages to a Windows installer. |
+| SMTC access | Long-lived PowerShell + WinRT process | The obvious alternative — a native Node addon — is the usual reason a project like this dies on someone's machine with a node-gyp error. This way `npm install` pulls Electron and nothing else. |
+| Bridge stdin | Raw `StreamReader` over `OpenStandardInput()`, never `[Console]::In` | `[Console]::In` is a `SyncTextReader`, whose `ReadLineAsync` runs *synchronously*. Using it blocked the poll loop until the parent sent a command — and the parent has nothing to say until the user presses a button, so no state ever reached the UI. |
+| Window mode | Frameless window sized to the display, **not** Electron full screen | Full screen bought nothing visually — the window is already frameless — and on Windows, hiding a full-screen window left the compositor holding a black surface the user had to alt-tab out of. `resizable: false` / `thickFrame: false` additionally drop the DWM caption hairline along the top edge and Windows 11's rounded corners. Costs the window shadow and the open/close animation. |
+| Background motion | Three gradient washes animated on the compositor | The Apple Music read: colour that shifts slowly enough that you notice it without catching it moving. Transform and opacity only — no blur, no `mix-blend-mode`, no JS — so frames cost GPU compositing and nothing on the CPU. The blurred cover behind them became static, which is *cheaper* than the drift it replaced, and was dropped to `opacity: 0.4` so the washes have something to read against rather than competing with a full-screen flat tone. |
+| Artwork | SMTC thumbnail, upgraded via iTunes Search API | Spotify only publishes ~300px, which is mushy at full screen. The upgrade is best-effort and cached; the thumbnail is always the fallback. |
+| Accent colour | Extracted in the main process, clamped | A `file://` canvas in the renderer would be tainted, so extraction happens in Node. Saturation and lightness are clamped into a narrow band so a loud cover can't blow the interface out. |
+
+## What's built
+
+```
+D:\spotifs
+├── package.json                  electron + electron-builder, NSIS config
+├── README.md                     setup, controls, troubleshooting
+├── PROGRESS.md                   this file
+├── build/                        app + tray icons (.ico, .png)
+└── src/
+    ├── main/
+    │   ├── main.js               lifecycle, tray menu, window, IPC, settings
+    │   ├── smtc.js               spawns + supervises the bridge, parses NDJSON
+    │   ├── smtc-bridge.ps1       WinRT poller; JSON out, commands in
+    │   ├── artwork.js            hi-res cover lookup + disk cache
+    │   └── palette.js            accent + wash hues from the cover
+    └── renderer/
+        ├── index.html            markup + inline SF-style control glyphs
+        ├── styles.css            the design
+        ├── app.js                state, position extrapolation, scrubbing
+        └── preload.js            context-isolated IPC surface
+```
+
+**Data flow**
+
+```
+Spotify ──▶ Windows System Media Transport Controls
+                        │
+            smtc-bridge.ps1 (persistent PowerShell + WinRT)
+                        │  NDJSON on stdout / commands on stdin
+                 Electron main process
+                        │  IPC
+                  Renderer (the UI)
+```
+
+**Working features**
+
+- Tray icon with open, multi-monitor display picker, high-resolution artwork
+  toggle, start-with-Windows toggle, and quit. Settings persist to disk.
+- Full-screen player: ambient artwork backdrop (blurred, vignetted), hero cover
+  with hairline edge and drop shadow, two-line clamped title, artist, album,
+  hairline scrubber, transport controls, clock.
+- Background motion: three soft colour fields drawn from the cover's three
+  busiest hues, drifting on 23s / 31s / 43s cycles. Those periods are prime, so
+  they share no factor, the three never resynchronise, and the loop never
+  becomes visible.
+  Hues crossfade between tracks through `@property`-typed custom properties, and
+  are unwrapped first so the interpolation takes the short way round the wheel.
+- Playback: play/pause, next, previous, drag-to-scrub, ±5s seek. Commands are
+  applied optimistically so the UI never waits on Spotify to acknowledge.
+- Keyboard: `Space`, `←`/`→`, `N`/`P`, `Esc`.
+- Chrome auto-hides after ~3s of stillness (cursor included) and returns on
+  movement; artwork, type and progress stay.
+- Per-track accent colour, crossfaded artwork and ambient layers, staggered
+  text entrance on track change.
+- Progress extrapolated between session updates, so the bar glides rather than
+  stepping once a second.
+- Empty state when nothing is playing; placeholder when a track has no cover.
+- Bridge auto-restarts with backoff if PowerShell dies. Single-instance lock.
+- `prefers-reduced-motion` respected — including the washes, which are stopped
+  by animation *name* rather than duration, so the catch-all rule can't leave
+  them looping `alternate` at 0.01ms.
+
+## Fixed on the first live run
+
+- **Nothing ever played.** The bridge blocked forever on its first stdin read
+  (see the decisions table). It emitted `ready`, then never reached the poll.
+- **Closing left a black screen.** Electron's full-screen mode; removed
+  entirely rather than reordered.
+- **Hairline along the top edge.** DWM painting caption colour on a frameless
+  window that still carried `WS_THICKFRAME`.
+- **Ascenders and descenders sheared off the title.** `line-height: 1.08` is
+  tighter than the font's natural line height (~1.33em), so the half-leading
+  went negative and the ink overflowed the content box — which the
+  `overflow: hidden` that `-webkit-line-clamp` requires then clipped. Fixed with
+  `padding-block: 0.18em` and a matching negative margin, so the glyphs get room
+  without the layout moving. Loosening the leading would have worked too, at the
+  cost of the tight display setting the design wants.
+- **The washes were invisible.** Not the motion — the balance. The blurred cover
+  at `opacity: 0.72` filled the screen with one flat tone, and three same-family
+  washes underneath a heavy vignette had nothing to read against. The cover
+  dropped to 0.4, the washes came up, and the veil was softened.
+
+## Verified so far
+
+- The bridge runs against live Spotify: the session is picked up, metadata and
+  position arrive, and the app tracks playback.
+- Tray icon, opening the player, and closing back to the tray.
+- Palette extraction, unit-checked against synthetic covers with `nativeImage`
+  mocked: a three-band cover returns those three hues (38 / 176 / 263), a
+  single-hue cover fans out around the accent (263 / 301 / 339), a greyscale
+  cover falls back to neutral. The accent is unchanged by the wash work — still
+  the busiest bin.
+- The washes, rendered headless at 1600x900 through the real `index.html` /
+  `styles.css`: two captures 12s apart differ by mean 14/255, max 59, with 71%
+  of pixels moving at least 8/255. The perceptual threshold across a large flat
+  area is nearer 2-3/255, so the motion is comfortably above it. Before the
+  rebalance the same measurement was imperceptible.
+- The title fix, rendered with "pretty isn't pretty" and with an
+  ascender/descender torture string: no clipping top or bottom, and no third
+  line peeking through the new bottom padding under `-webkit-line-clamp`.
+- Every JS file parses (`node --check`); the bridge parses
+  (`[Parser]::ParseFile`); `package.json` is valid.
+- The renderer was rendered in headless Chromium at 1600×900 using the real
+  `index.html` / `styles.css` / `app.js` with mocked player state — active,
+  idle (chrome hidden) and empty states all check out, and the progress bar
+  ticks correctly between frames. *Predates the wash work.*
+
+## Not yet verified — needs a run on the machine
+
+- The washes against real album art on the actual machine. They have been
+  measured and eyeballed in a headless render with synthetic covers only.
+- Whether Spotify exposes seek through the session (it varies by build).
+- Transport commands beyond those exercised so far.
+- The iTunes artwork upgrade end to end.
+- Multi-monitor: the display picker, and reopening on the chosen screen.
+- `npm run dist` packaging, and whether the unpacked `.ps1` path resolves
+  correctly inside an installed build.
+
+## Known limitations
+
+- **Volume.** SMTC exposes play/pause/skip/seek but not Spotify's own volume —
+  only the system's. In-app volume needs the Web API. This is why the current
+  UI has no volume control rather than a misleading one.
+- **Seek may be unavailable.** Some Spotify builds don't set
+  `IsPlaybackPositionEnabled`. The scrubber attempts the seek anyway and
+  degrades quietly.
+- **No shuffle / repeat / queue state.** The session doesn't expose it reliably.
+- **Artwork resolution** depends on the iTunes catalogue having the album and on
+  a working connection; otherwise it's Spotify's ~300px thumbnail upscaled.
+- **Windows only**, by design — SMTC is a Windows API.
+
+## Future scope
+
+**Near term**
+
+- Global hotkey to open the player without reaching for the tray.
+- Auto-open when playback starts, and/or an idle "ambient" mode that takes over
+  a second monitor.
+- Remember the last display and reopen there.
+
+**The Web API port**
+
+The documented fallback if the session proves too limited. It costs an OAuth
+login and a Spotify developer app, and buys: reliable seek, volume, shuffle and
+repeat state, the queue, richer metadata, and artwork straight from Spotify at
+full resolution. The renderer wouldn't change — only the source feeding
+`player:state`. Worth doing as a *second* provider behind the same interface
+rather than a replacement, so the app still works offline and without a login.
+
+**Design and feature ideas**
+
+- Lyrics panel (synced if a source is available), as a second layout the view
+  can switch to.
+- Up-next / queue peek on hover.
+- A restrained audio-reactive element — the temptation here is a spectrum
+  analyser, which would undo the whole design; something much quieter, if
+  anything.
+- Adaptive light theme for bright covers in bright rooms.
+- Tune the washes across a wide spread of covers. The opacities and the 34°
+  minimum hue separation are first guesses, and very dark covers may still read
+  flat.
+
+**Engineering**
+
+- Package and sign the installer; auto-update.
+- Cap the artwork cache and prune it.
+- Move the bridge poll from a fixed 220ms interval to event subscriptions
+  (`MediaPropertiesChanged`, `PlaybackInfoChanged`) to cut idle CPU further.
+- Measure the renderer on a low-end machine. The washes are *designed* to be
+  compositor-only, but that is reasoning rather than a measurement — worth
+  confirming in DevTools that no layer re-rasterises per frame.

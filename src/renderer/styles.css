@@ -1,0 +1,577 @@
+/* ---------------------------------------------------------------------------
+   Now Playing — full screen
+   Design notes: content leads, chrome recedes. One accent colour, pulled from
+   the artwork and deliberately desaturated. Hairlines instead of borders,
+   real shadows instead of glows, tabular figures for anything that ticks.
+--------------------------------------------------------------------------- */
+
+/* Typed so the wash hues can be interpolated. Without these the background
+   would jump to the new track's colours in one frame while the artwork was
+   still crossfading. app.js unwraps the values first (351 -> 372 rather than
+   351 -> 12) so the transition takes the short way round the wheel. */
+@property --wash-1-h { syntax: '<number>'; inherits: true; initial-value: 220; }
+@property --wash-2-h { syntax: '<number>'; inherits: true; initial-value: 258; }
+@property --wash-3-h { syntax: '<number>'; inherits: true; initial-value: 182; }
+
+:root {
+  transition:
+    --wash-1-h 1.6s var(--ease),
+    --wash-2-h 1.6s var(--ease),
+    --wash-3-h 1.6s var(--ease);
+
+  /* Overwritten per track from the artwork. */
+  --accent-h: 220;
+  --accent-s: 12%;
+  --accent-l: 62%;
+  --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
+  --tint: hsl(var(--accent-h) 18% 12%);
+
+  --ink: 255 255 255;
+  --base: #070709;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --art-size: min(52vh, 33vw);
+  --chrome-in: 0.42s var(--ease);
+  --chrome-out: 0.7s var(--ease);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--base);
+  color: rgb(var(--ink));
+  font-family: "SF Pro Display", -apple-system, "Segoe UI Variable Display", "Segoe UI",
+    system-ui, sans-serif;
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+  cursor: default;
+}
+
+body.idle {
+  cursor: none;
+}
+
+/* ------------------------------------------------------------------ ambient */
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--base);
+  overflow: hidden;
+}
+
+.ambient-layer {
+  position: absolute;
+  inset: -18%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: blur(84px) saturate(155%) brightness(0.74);
+  opacity: 0;
+  transform: scale(1.25);
+  transition: opacity 1.1s var(--ease);
+  will-change: opacity;
+}
+
+/* Static. The 84px blur is the single most expensive thing on screen, so it is
+   rasterised once per track and then left alone; the motion below comes from
+   cheap gradient layers moving across it instead. */
+.ambient-layer.is-active {
+  opacity: 0.4;
+  transform: scale(1.28);
+}
+
+/* --------------------------------------------------------------------- wash
+
+   Three wide, soft colour fields taken from the cover's three busiest hues,
+   drifting slowly past each other. Where they overlap the mix changes, which
+   reads as the background very slowly shifting colour without anything ever
+   obviously moving.
+
+   Cost: transform and opacity only, so every frame is composited on the GPU —
+   no re-rasterisation, no main-thread work, no JS. Deliberately no blur and no
+   mix-blend-mode; both force extra passes on weak GPUs, and a wide radial
+   gradient is already soft. Deliberately no will-change either: a running
+   transform animation gets the layer promoted anyway, and the hint would only
+   pin more texture memory. Three layers at 62vmax is roughly 15MB of texture at
+   1080p, and it does not grow with playback.
+
+   23s / 31s / 43s are prime, so the three never resynchronise and the loop
+   never becomes visible. Speed costs nothing here — a compositor transform is
+   the same work per frame however far it travels — so this is purely a
+   question of what reads as movement.                                        */
+
+.wash {
+  position: absolute;
+  width: 62vmax;
+  height: 62vmax;
+  border-radius: 50%;
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.wash-1 {
+  top: -16%;
+  left: -10%;
+  background: radial-gradient(closest-side, hsl(var(--wash-1-h, 220) 64% 62% / 0.88), transparent 72%);
+  animation: wash-a 23s ease-in-out infinite alternate;
+}
+
+.wash-2 {
+  top: 6%;
+  right: -3%; /* the veil is at its darkest past ~80% across; keep clear of it */
+  background: radial-gradient(closest-side, hsl(var(--wash-2-h, 258) 60% 58% / 0.82), transparent 72%);
+  animation: wash-b 31s ease-in-out infinite alternate;
+}
+
+.wash-3 {
+  bottom: -22%;
+  left: 22%;
+  background: radial-gradient(closest-side, hsl(var(--wash-3-h, 182) 56% 55% / 0.75), transparent 72%);
+  animation: wash-c 43s ease-in-out infinite alternate;
+}
+
+@keyframes wash-a {
+  from { transform: translate3d(-11%, -7%, 0) scale(0.92); }
+  to   { transform: translate3d(21%, 16%, 0) scale(1.26); }
+}
+
+@keyframes wash-b {
+  from { transform: translate3d(9%, 13%, 0) scale(1.22); }
+  to   { transform: translate3d(-19%, -14%, 0) scale(0.88); }
+}
+
+@keyframes wash-c {
+  from { transform: translate3d(15%, 8%, 0) scale(1.04); }
+  to   { transform: translate3d(-17%, -18%, 0) scale(1.32); }
+}
+
+/* Vignette keeps the type legible no matter how bright the cover is. */
+.ambient-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 105% at 50% 32%, rgba(0, 0, 0, 0) 14%, rgba(0, 0, 0, 0.28) 66%, rgba(0, 0, 0, 0.54) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.06) 34%, rgba(0, 0, 0, 0.38) 100%);
+}
+
+/* Breaks up banding across the big blur. */
+.ambient-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.032;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------------------------------------------- chrome */
+
+.chrome {
+  transition: opacity var(--chrome-in), transform var(--chrome-in);
+}
+
+body.idle .chrome {
+  opacity: 0 !important;
+  transform: translateY(6px);
+  transition: opacity var(--chrome-out), transform var(--chrome-out);
+  pointer-events: none;
+}
+
+.chrome-top {
+  position: fixed;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  padding: 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.clock {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink) / 0.5);
+}
+
+.close {
+  -webkit-app-region: no-drag;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  color: rgb(var(--ink) / 0.72);
+  background: rgb(var(--ink) / 0.08);
+  backdrop-filter: blur(20px) saturate(140%);
+  cursor: pointer;
+  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
+}
+
+.close:hover {
+  background: rgb(var(--ink) / 0.16);
+  color: rgb(var(--ink));
+}
+
+.close:active {
+  transform: scale(0.92);
+}
+
+/* -------------------------------------------------------------------- stage */
+
+.stage {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--art-size) minmax(264px, 26vw);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(44px, 5.2vw, 92px);
+  padding: 0 clamp(40px, 6vw, 120px);
+  opacity: 1;
+  transition: opacity 0.5s var(--ease);
+}
+
+body.empty-state .stage {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ artwork */
+
+.art {
+  position: relative;
+  width: var(--art-size);
+  height: var(--art-size);
+}
+
+/* Soft colour spill under the cover — light, not neon. */
+.art-glow {
+  position: absolute;
+  inset: -9%;
+  border-radius: 50%;
+  background: var(--accent);
+  filter: blur(78px);
+  opacity: 0.34;
+  transform: translateY(5%);
+  transition: background 1s var(--ease), opacity 1s var(--ease);
+}
+
+.art-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: clamp(8px, 1.1vh, 14px);
+  overflow: hidden;
+  background: #101014;
+  box-shadow:
+    0 0 0 0.5px rgb(var(--ink) / 0.11),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 34px 78px -16px rgba(0, 0, 0, 0.66);
+  transform: translateZ(0);
+}
+
+.art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.015);
+  transition: opacity 0.62s var(--ease), transform 0.62s var(--ease);
+}
+
+.art-img.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.art-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgb(var(--ink) / 0.16);
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+}
+
+body.no-art .art-placeholder {
+  opacity: 1;
+}
+
+body.no-art .art-glow {
+  opacity: 0.12;
+}
+
+/* --------------------------------------------------------------------- meta */
+
+.meta {
+  min-width: 0;
+}
+
+.title {
+  font-size: clamp(30px, 2.65vw, 48px);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.022em;
+  color: rgb(var(--ink) / 0.98);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* 1.08 is tighter than the font's natural line height (~1.33em), so the
+     half-leading is negative and the glyphs overflow the content box — which
+     the overflow:hidden that line-clamp requires then shears off, taking the
+     tops of the t's and the tails of the y's. Pad the box out to cover the
+     overflow and pull the same amount back off the margin, so the ink has room
+     but the layout does not move. */
+  padding-block: 0.18em;
+  margin-block: -0.18em;
+}
+
+.artist {
+  margin-top: 11px;
+  font-size: clamp(17px, 1.32vw, 24px);
+  font-weight: 400;
+  letter-spacing: -0.008em;
+  color: rgb(var(--ink) / 0.68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album {
+  margin-top: 5px;
+  font-size: clamp(12.5px, 0.78vw, 15px);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  color: rgb(var(--ink) / 0.38);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Staggered entrance whenever the track changes. */
+body.track-in .title,
+body.track-in .artist,
+body.track-in .album {
+  animation: rise 0.62s var(--ease) both;
+}
+
+body.track-in .artist {
+  animation-delay: 0.05s;
+}
+
+body.track-in .album {
+  animation-delay: 0.09s;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ----------------------------------------------------------------- scrubber */
+
+.scrub {
+  margin-top: clamp(28px, 3.4vh, 46px);
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.scrub-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(var(--ink) / 0.15);
+  transition: height 0.22s var(--ease-out);
+}
+
+.scrub:hover .scrub-track,
+.scrub.is-dragging .scrub-track {
+  height: 7px;
+}
+
+.scrub-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: inherit;
+  background: color-mix(in oklab, white 80%, var(--accent));
+}
+
+.scrub-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  transform: translateY(-50%) scale(0.4);
+  opacity: 0;
+  transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out);
+}
+
+.scrub:hover .scrub-knob,
+.scrub.is-dragging .scrub-knob {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.scrub.is-disabled {
+  cursor: default;
+}
+
+.scrub.is-disabled .scrub-knob {
+  display: none;
+}
+
+.times {
+  margin-top: 9px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 450;
+  letter-spacing: 0.012em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink) / 0.4);
+}
+
+/* ----------------------------------------------------------------- controls */
+
+.controls {
+  margin-top: clamp(20px, 2.6vh, 34px);
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 1.4vw, 24px);
+}
+
+.ctrl {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  color: rgb(var(--ink) / 0.88);
+  cursor: pointer;
+  transition: color 0.18s var(--ease-out), transform 0.18s var(--ease-out),
+    opacity 0.18s var(--ease-out);
+}
+
+.ctrl:hover {
+  color: rgb(var(--ink));
+}
+
+.ctrl:active {
+  transform: scale(0.9);
+}
+
+.ctrl:disabled {
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.ctrl-play {
+  width: 54px;
+  height: 54px;
+}
+
+.ctrl-play .glyph-pause {
+  display: none;
+}
+
+body.is-playing .ctrl-play .glyph-play {
+  display: none;
+}
+
+body.is-playing .ctrl-play .glyph-pause {
+  display: block;
+}
+
+/* -------------------------------------------------------------- empty state */
+
+.empty {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease);
+}
+
+body.empty-state .empty {
+  opacity: 1;
+}
+
+.empty-title {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: rgb(var(--ink) / 0.6);
+}
+
+.empty-hint {
+  font-size: 14px;
+  color: rgb(var(--ink) / 0.3);
+}
+
+/* First paint shouldn't flash. */
+body.loading .stage,
+body.loading .empty {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-layer.is-active {
+    animation: none;
+  }
+  /* animation-name, not duration — the catch-all below would otherwise leave
+     these looping alternate at 0.01ms, which flickers and burns the GPU. */
+  .wash {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.12s !important;
+  }
+}

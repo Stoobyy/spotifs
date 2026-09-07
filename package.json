@@ -1,0 +1,41 @@
+{
+  "name": "spotifs",
+  "productName": "Now Playing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A full-screen now playing display for Spotify on Windows, driven by the system media session.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": ">=30.0.0",
+    "electron-builder": ">=24.0.0"
+  },
+  "build": {
+    "appId": "com.spotifs.nowplaying",
+    "productName": "Now Playing",
+    "files": [
+      "src/**/*",
+      "build/icon*.png",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.ps1",
+      "build/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Now Playing"
+    }
+  }
+}
