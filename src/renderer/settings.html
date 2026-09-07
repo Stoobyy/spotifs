@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' file: data:; style-src 'self' 'unsafe-inline'; font-src 'self' file: data:; script-src 'self';"
+    />
+    <title>Settings</title>
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <span class="bar-title">Settings</span>
+      <button class="close" id="closeBtn" aria-label="Close" title="Close">
+        <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+          <path
+            d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.1"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <main class="sheet">
+      <section class="group">
+        <h2 class="group-title">Theme</h2>
+        <div class="themes" id="themes">
+          <button class="theme" data-theme="classic" type="button">
+            <span class="theme-art theme-art-classic" aria-hidden="true">
+              <span class="tc-cover"></span>
+              <span class="tc-lines">
+                <span></span><span></span><span></span>
+              </span>
+            </span>
+            <span class="theme-name">Classic</span>
+            <span class="theme-note">Big cover, landscape</span>
+          </button>
+
+          <button class="theme" data-theme="lockscreen" type="button">
+            <span class="theme-art theme-art-lock" aria-hidden="true">
+              <span class="tl-clock"></span>
+              <span class="tl-card"><span></span></span>
+            </span>
+            <span class="theme-name">Lock Screen</span>
+            <span class="theme-note">Clock, date, glass card</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">Font</h2>
+        <div class="row">
+          <label class="row-label" for="fontSelect">Typeface</label>
+          <select class="control" id="fontSelect"></select>
+        </div>
+        <p class="preview" id="fontPreview">Everybody Wants To Rule The World</p>
+        <div class="row row-actions">
+          <button class="btn" id="importBtn" type="button">Import font file…</button>
+          <button class="btn btn-quiet" id="removeBtn" type="button" hidden>Remove</button>
+        </div>
+        <p class="hint" id="fontHint">
+          Any font installed on this PC, or import a .ttf, .otf, .ttc, .woff or .woff2.
+        </p>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">Clock</h2>
+        <div class="row">
+          <label class="row-label" for="clockSelect">Format</label>
+          <select class="control" id="clockSelect">
+            <option value="auto">Match system</option>
+            <option value="12">12-hour</option>
+            <option value="24">24-hour</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">Display</h2>
+        <div class="row">
+          <label class="row-label" for="displaySelect">Show player on</label>
+          <select class="control" id="displaySelect"></select>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2 class="group-title">General</h2>
+        <label class="toggle">
+          <input type="checkbox" id="hiResToggle" />
+          <span class="toggle-track"><span class="toggle-knob"></span></span>
+          <span class="toggle-text">
+            High-resolution artwork
+            <small>Upgrades Spotify's small cover via the iTunes catalogue</small>
+          </span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="loginToggle" />
+          <span class="toggle-track"><span class="toggle-knob"></span></span>
+          <span class="toggle-text">
+            Start with Windows
+            <small>Launches hidden, in the tray</small>
+          </span>
+        </label>
+      </section>
+    </main>
+
+    <script src="settings.js"></script>
+  </body>
+</html>

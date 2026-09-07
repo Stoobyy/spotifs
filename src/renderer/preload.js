@@ -13,4 +13,7 @@ contextBridge.exposeInMainWorld('player', {
   onVisibility: (callback) => {
     ipcRenderer.on('player:visible', (_event, visible) => callback(visible));
   },
+  onAppearance: (callback) => {
+    ipcRenderer.on('player:appearance', (_event, appearance) => callback(appearance));
+  },
 });

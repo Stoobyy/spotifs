@@ -44,8 +44,27 @@ Produces an NSIS installer under `dist\`.
 | Seek ±5s | `←` / `→` |
 | Scrub | Drag the progress bar |
 
-Right-click the tray icon for the display picker (multi-monitor), the
-high-resolution artwork toggle, and "Start with Windows".
+Right-click the tray icon and choose **Settings** for themes, fonts, the clock
+format, the display picker (multi-monitor), high-resolution artwork and "Start
+with Windows".
+
+### Themes
+
+| Theme | What it looks like |
+| --- | --- |
+| **Classic** | Big cover on the left, metadata and controls on the right. |
+| **Lock Screen** | Date and a large clock centred at the top, everything else in one floating glass card low on the screen, after the macOS lock screen. |
+
+Both themes share the same ambient backdrop and the same state, so switching is
+instant and nothing is lost either way.
+
+### Fonts
+
+Pick any font installed on the PC, or **Import font file…** to use one that
+isn't installed — `.ttf`, `.otf`, `.ttc`, `.woff` or `.woff2`. Imported files
+are copied into the app's data folder, so moving or deleting the original later
+won't break the display. The chosen font is layered on top of the built-in
+stack rather than replacing it, so anything it lacks still falls back cleanly.
 
 The clock, controls and close button fade out after ~3 seconds of stillness and
 come back on any mouse movement.
@@ -70,10 +89,14 @@ Spotify  ──▶  Windows System Media Transport Controls
 - **`src/main/artwork.js`** — Spotify only publishes a ~300px thumbnail, which
   looks soft at full screen, so covers are quietly upgraded via Apple's public
   iTunes Search API and cached on disk. Fails silently back to the thumbnail;
-  toggle it off in the tray menu.
+  toggle it off in Settings.
 - **`src/main/palette.js`** — pulls one accent colour from the cover in the main
   process (a `file://` canvas in the renderer would be tainted), with saturation
   and lightness clamped so a loud cover can't blow out the interface.
+- **`src/main/fonts.js`** — enumerates installed families (via PowerShell's
+  `InstalledFontCollection`) and copies imported font files into userData,
+  handing the renderer `@font-face` rules pointing at them.
+- **`src/renderer/settings.*`** — the settings window.
 - **`src/renderer/`** — the display. Position is extrapolated between session
   updates so the progress bar moves smoothly rather than stepping once a second.
 
@@ -93,7 +116,7 @@ output — `[smtc]` lines report PowerShell-side problems. The script is invoked
 with `-ExecutionPolicy Bypass`, so a locked-down execution policy shouldn't
 block it, but a managed machine may still refuse.
 
-**Artwork is soft.** Turn on "High-resolution artwork" in the tray menu; it
+**Artwork is soft.** Turn on "High-resolution artwork" in Settings; it
 needs a working internet connection and only matches albums that exist in the
 iTunes catalogue.
 

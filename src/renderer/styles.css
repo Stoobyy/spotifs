@@ -32,6 +32,11 @@
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /* Replaced wholesale by app.js when a font is chosen, so an unavailable
+     family can never invalidate the declaration. */
+  --font-stack: "SF Pro Display", -apple-system, "Segoe UI Variable Display", "Segoe UI",
+    system-ui, sans-serif;
+
   --art-size: min(52vh, 33vw);
   --chrome-in: 0.42s var(--ease);
   --chrome-out: 0.7s var(--ease);
@@ -52,8 +57,7 @@ body {
 body {
   background: var(--base);
   color: rgb(var(--ink));
-  font-family: "SF Pro Display", -apple-system, "Segoe UI Variable Display", "Segoe UI",
-    system-ui, sans-serif;
+  font-family: var(--font-stack);
   font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -574,4 +578,188 @@ body.loading .empty {
     animation-duration: 0.01ms !important;
     transition-duration: 0.12s !important;
   }
+}
+
+/* ============================================================================
+   THEME 2 — lock screen
+
+   The macOS lock screen read: date and clock centred at the top, everything
+   else in one floating glass card low on the screen. The ambient backdrop and
+   the washes are shared with theme 1 — only the arrangement changes, so both
+   themes stay one set of elements and one set of state code.
+   ========================================================================== */
+
+.lock-head {
+  display: none;
+}
+
+:root[data-theme="lockscreen"] .lock-head {
+  position: fixed;
+  z-index: 3;
+  top: clamp(28px, 5vh, 62px);
+  left: 0;
+  right: 0;
+  display: block;
+  text-align: center;
+  pointer-events: none;
+}
+
+.lock-date {
+  font-size: clamp(15px, 1.1vw, 20px);
+  font-weight: 600;
+  letter-spacing: 0.004em;
+  color: rgb(var(--ink) / 0.92);
+  text-shadow: 0 1px 12px rgb(0 0 0 / 0.28);
+}
+
+/* The oversized, light-weight clock is the whole character of this screen. */
+.lock-clock {
+  margin-top: 0.02em;
+  font-size: clamp(72px, 9.4vw, 168px);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.018em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--ink) / 0.97);
+  text-shadow: 0 2px 30px rgb(0 0 0 / 0.24);
+  /* Same clipping trap as .title: the tight leading pulls the box in tighter
+     than the glyphs at this size. */
+  padding-block: 0.06em;
+  margin-block: -0.06em;
+}
+
+/* --- the card ------------------------------------------------------------ */
+
+:root[data-theme="lockscreen"] .chrome-top .clock {
+  /* The big clock above already says the time. */
+  opacity: 0;
+}
+
+:root[data-theme="lockscreen"] .stage {
+  display: block;
+  height: auto;
+  padding: 0;
+  position: fixed;
+  z-index: 2;
+  left: 50%;
+  bottom: clamp(52px, 13vh, 132px);
+  transform: translateX(-50%);
+  width: min(720px, 62vw);
+  padding: clamp(14px, 1.5vh, 20px);
+  border-radius: 26px;
+  background: rgb(255 255 255 / 0.1);
+  border: 0.5px solid rgb(255 255 255 / 0.16);
+  box-shadow:
+    0 24px 70px rgb(0 0 0 / 0.34),
+    inset 0 0.5px 0 rgb(255 255 255 / 0.12);
+  backdrop-filter: blur(34px) saturate(170%);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: clamp(14px, 1.6vw, 22px);
+}
+
+:root[data-theme="lockscreen"] .art {
+  width: clamp(96px, 9vw, 132px);
+  height: clamp(96px, 9vw, 132px);
+}
+
+:root[data-theme="lockscreen"] .art-frame {
+  border-radius: 12px;
+}
+
+/* The hero glow belongs to theme 1's big cover; at card size it just smears. */
+:root[data-theme="lockscreen"] .art-glow {
+  opacity: 0;
+}
+
+:root[data-theme="lockscreen"] .title {
+  font-size: clamp(17px, 1.35vw, 23px);
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.01em;
+  -webkit-line-clamp: 1;
+}
+
+:root[data-theme="lockscreen"] .artist {
+  margin-top: 1px;
+  font-size: clamp(14px, 1.05vw, 18px);
+  color: rgb(var(--ink) / 0.72);
+}
+
+/* Artist and album share one line here, the way the reference does it. The
+   attribute selector keeps the em dash from appearing on a track with no
+   album, where attr() would otherwise resolve to an empty string. */
+:root[data-theme="lockscreen"] .artist[data-album]::after {
+  content: " — " attr(data-album);
+  color: rgb(var(--ink) / 0.72);
+}
+
+:root[data-theme="lockscreen"] .album {
+  display: none;
+}
+
+:root[data-theme="lockscreen"] .scrub {
+  margin-top: clamp(9px, 1.2vh, 15px);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+}
+
+:root[data-theme="lockscreen"] .scrub-track {
+  order: 2;
+  height: 5px;
+  border-radius: 3px;
+  background: rgb(var(--ink) / 0.22);
+}
+
+:root[data-theme="lockscreen"] .scrub-fill {
+  border-radius: 3px;
+  background: rgb(var(--ink) / 0.92);
+}
+
+/* macOS shows a plain bar with no handle until you reach for it. */
+:root[data-theme="lockscreen"] .scrub-knob {
+  opacity: 0;
+}
+
+:root[data-theme="lockscreen"] .scrub:hover .scrub-knob {
+  opacity: 1;
+}
+
+:root[data-theme="lockscreen"] .times {
+  display: contents;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-theme="lockscreen"] .times > :first-child {
+  order: 1;
+}
+
+:root[data-theme="lockscreen"] .times > :last-child {
+  order: 3;
+}
+
+:root[data-theme="lockscreen"] .controls {
+  margin-top: clamp(4px, 0.8vh, 10px);
+  justify-content: center;
+  gap: clamp(28px, 3.4vw, 52px);
+}
+
+:root[data-theme="lockscreen"] .ctrl {
+  color: rgb(var(--ink) / 0.95);
+}
+
+/* The card is the interface here; fading it out on idle would leave an empty
+   screen with a clock, which is arguably the point of a lock screen — but it
+   also hides the artwork, so only the window chrome fades. */
+:root[data-theme="lockscreen"] body.idle .controls {
+  opacity: 1 !important;
+  transform: none;
+  pointer-events: auto;
+}
+
+:root[data-theme="lockscreen"] .empty {
+  bottom: auto;
 }

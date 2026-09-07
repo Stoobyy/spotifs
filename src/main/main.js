@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -8,12 +8,14 @@ const { pathToFileURL } = require('url');
 const { SmtcBridge } = require('./smtc');
 const { ArtworkResolver } = require('./artwork');
 const { paletteFor } = require('./palette');
+const fonts = require('./fonts');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ICON_ICO = path.join(ROOT, 'build', 'icon.ico');
 const ICON_PNG = path.join(ROOT, 'build', 'icon-256.png');
 
 let win = null;
+let settingsWin = null;
 let tray = null;
 let bridge = null;
 let artwork = null;
@@ -29,10 +31,20 @@ function settingsPath() {
 }
 
 function loadSettings() {
-  const defaults = { displayId: null, hiResArtwork: true, launchAtLogin: false };
+  const defaults = {
+    displayId: null,
+    hiResArtwork: true,
+    launchAtLogin: false,
+    theme: 'classic', // 'classic' | 'lockscreen'
+    fontFamily: '', // '' = the built-in system stack
+    clock24h: null, // null = follow the system locale
+    customFonts: [], // [{ family, file }]
+  };
   try {
     const raw = JSON.parse(fs.readFileSync(settingsPath(), 'utf8'));
-    return Object.assign(defaults, raw);
+    const merged = Object.assign(defaults, raw);
+    merged.customFonts = fonts.prune(merged.customFonts);
+    return merged;
   } catch (_) {
     return defaults;
   }
@@ -134,54 +146,12 @@ function trayImage() {
   return image.isEmpty() ? nativeImage.createEmpty() : image;
 }
 
+// Everything configurable now lives in the settings window; the tray stays a
+// three-item menu so the common actions are one click away.
 function buildTrayMenu() {
-  const displays = screen.getAllDisplays();
-
   return Menu.buildFromTemplate([
-    {
-      label: 'Open Now Playing',
-      click: showPlayer,
-    },
-    { type: 'separator' },
-    {
-      label: 'Display',
-      submenu: displays.map((display, index) => ({
-        label:
-          (display.id === screen.getPrimaryDisplay().id ? 'Primary' : `Display ${index + 1}`) +
-          `  ${display.size.width} × ${display.size.height}`,
-        type: 'radio',
-        checked:
-          String(settings.displayId) === String(display.id) ||
-          (!settings.displayId && display.id === screen.getPrimaryDisplay().id),
-        click: () => {
-          settings.displayId = display.id;
-          saveSettings();
-          currentDisplayId = null;
-          if (win && win.isVisible()) showPlayer();
-        },
-      })),
-    },
-    {
-      label: 'High-resolution artwork',
-      type: 'checkbox',
-      checked: settings.hiResArtwork,
-      click: (item) => {
-        settings.hiResArtwork = item.checked;
-        saveSettings();
-        if (item.checked) fetchHiResArtwork();
-        pushState(true);
-      },
-    },
-    {
-      label: 'Start with Windows',
-      type: 'checkbox',
-      checked: settings.launchAtLogin,
-      click: (item) => {
-        settings.launchAtLogin = item.checked;
-        saveSettings();
-        app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] });
-      },
-    },
+    { label: 'Open Now Playing', click: showPlayer },
+    { label: 'Settings…', click: openSettings },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -262,6 +232,103 @@ function onState(state) {
   if (trackChanged) fetchHiResArtwork();
 }
 
+/* --------------------------------------------------------------- appearance */
+
+function appearance() {
+  return {
+    theme: settings.theme,
+    fontFamily: settings.fontFamily,
+    clock24h: settings.clock24h,
+    fontFaceCss: fonts.faceCss(settings.customFonts),
+  };
+}
+
+function pushAppearance() {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('player:appearance', appearance());
+}
+
+/* ----------------------------------------------------------------- settings */
+
+const SETTINGS_SIZE = { width: 460, height: 712 };
+
+function openSettings() {
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.show();
+    settingsWin.focus();
+    return;
+  }
+
+  settingsWin = new BrowserWindow({
+    width: SETTINGS_SIZE.width,
+    height: SETTINGS_SIZE.height,
+    show: false,
+    frame: false,
+    resizable: false,
+    maximizable: false,
+    backgroundColor: '#1b1b1d',
+    title: 'Now Playing Settings',
+    icon: fs.existsSync(ICON_PNG) ? ICON_PNG : undefined,
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'renderer', 'settings-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  settingsWin.loadFile(path.join(ROOT, 'src', 'renderer', 'settings.html'));
+
+  // The player sits at screen-saver level, so the settings window has to as
+  // well or it opens behind the thing it is configuring.
+  settingsWin.setAlwaysOnTop(true, 'screen-saver');
+
+  settingsWin.once('ready-to-show', () => {
+    settingsWin.show();
+    settingsWin.focus();
+  });
+
+  settingsWin.on('closed', () => {
+    settingsWin = null;
+  });
+}
+
+function displayList() {
+  const primary = screen.getPrimaryDisplay().id;
+  return screen.getAllDisplays().map((display, index) => ({
+    id: display.id,
+    label: display.id === primary ? 'Primary display' : `Display ${index + 1}`,
+    size: `${display.size.width} x ${display.size.height}`,
+    primary: display.id === primary,
+  }));
+}
+
+/** Applies a patch of changed keys, doing whatever each one needs. */
+function applySettings(patch) {
+  const before = Object.assign({}, settings);
+  Object.assign(settings, patch);
+  saveSettings();
+
+  if ('launchAtLogin' in patch && patch.launchAtLogin !== before.launchAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: !!patch.launchAtLogin, args: ['--hidden'] });
+  }
+
+  if ('displayId' in patch && String(patch.displayId) !== String(before.displayId)) {
+    currentDisplayId = null;
+    if (win && !win.isDestroyed() && win.isVisible()) showPlayer();
+  }
+
+  if ('hiResArtwork' in patch && patch.hiResArtwork !== before.hiResArtwork) {
+    if (patch.hiResArtwork) fetchHiResArtwork();
+    pushState(true);
+  }
+
+  if ('theme' in patch || 'fontFamily' in patch || 'clock24h' in patch || 'customFonts' in patch) {
+    pushAppearance();
+  }
+
+  return settings;
+}
+
 /* ----------------------------------------------------------------- lifecycle */
 
 if (!app.requestSingleInstanceLock()) {
@@ -283,7 +350,10 @@ if (!app.requestSingleInstanceLock()) {
     });
     bridge.start();
 
-    ipcMain.on('player:ready', () => pushState(true));
+    ipcMain.on('player:ready', () => {
+      pushAppearance();
+      pushState(true);
+    });
     ipcMain.on('player:close', hidePlayer);
     ipcMain.on('player:command', (_event, command, value) => {
       if (!bridge) return;
@@ -301,6 +371,51 @@ if (!app.requestSingleInstanceLock()) {
         default:
           break;
       }
+    });
+
+    ipcMain.handle('settings:get', async () => ({
+      settings,
+      displays: displayList(),
+      systemFonts: await fonts.listSystemFonts(),
+      // The preview has to be able to name imported faces too.
+      fontFaceCss: fonts.faceCss(settings.customFonts),
+    }));
+
+    ipcMain.handle('settings:set', (_event, patch) => applySettings(patch || {}));
+
+    ipcMain.handle('settings:importFont', async () => {
+      const parent = settingsWin && !settingsWin.isDestroyed() ? settingsWin : undefined;
+      const result = await dialog.showOpenDialog(parent, {
+        title: 'Choose a font file',
+        properties: ['openFile'],
+        filters: [{ name: 'Fonts', extensions: ['ttf', 'otf', 'ttc', 'woff', 'woff2'] }],
+      });
+      if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+
+      try {
+        const record = fonts.importFont(result.filePaths[0], settings.customFonts);
+        applySettings({
+          customFonts: settings.customFonts.concat([record]),
+          fontFamily: record.family,
+        });
+        return { canceled: false, font: record, settings };
+      } catch (err) {
+        return { canceled: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle('settings:removeFont', (_event, family) => {
+      const record = settings.customFonts.find((f) => f.family === family);
+      if (!record) return settings;
+      fonts.removeFont(record);
+      const patch = { customFonts: settings.customFonts.filter((f) => f.family !== family) };
+      // Don't leave the player pointing at a font that no longer exists.
+      if (settings.fontFamily === family) patch.fontFamily = '';
+      return applySettings(patch);
+    });
+
+    ipcMain.on('settings:close', () => {
+      if (settingsWin && !settingsWin.isDestroyed()) settingsWin.close();
     });
   });
 

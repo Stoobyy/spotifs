@@ -23,7 +23,19 @@ const dom = {
   nextBtn: el('nextBtn'),
   closeBtn: el('closeBtn'),
   clock: el('clock'),
+  lockDate: el('lockDate'),
+  lockClock: el('lockClock'),
 };
+
+// Kept in sync with the stack in styles.css; a chosen font is prepended to it
+// rather than replacing it, so missing glyphs still fall back sensibly.
+const DEFAULT_STACK =
+  '"SF Pro Display", -apple-system, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif';
+
+const faceStyle = document.createElement('style');
+document.head.appendChild(faceStyle);
+
+let clock24h = null;
 
 const track = {
   key: '',
@@ -136,6 +148,9 @@ function onState(state) {
     dom.title.textContent = state.title || 'Nothing playing';
     dom.artist.textContent = state.artist || '';
     dom.album.textContent = state.album || '';
+    // Theme 2 renders "Artist — Album" as one line, off this attribute.
+    if (state.album) dom.artist.dataset.album = state.album;
+    else delete dom.artist.dataset.album;
     document.title = state.title ? `${state.title} — ${state.artist}` : 'Now Playing';
     if (changed && state.hasTrack) replay();
   }
@@ -314,13 +329,52 @@ function wake() {
   window.addEventListener(type, wake, { passive: true })
 );
 
+/* --------------------------------------------------------------- appearance */
+
+function applyAppearance(appearance) {
+  if (!appearance) return;
+
+  document.documentElement.dataset.theme = appearance.theme || 'classic';
+
+  // The imported faces have to be declared before anything can name them.
+  faceStyle.textContent = appearance.fontFaceCss || '';
+  document.documentElement.style.setProperty(
+    '--font-stack',
+    appearance.fontFamily ? `"${appearance.fontFamily}", ${DEFAULT_STACK}` : DEFAULT_STACK
+  );
+
+  clock24h = appearance.clock24h;
+  tickClock();
+}
+
 /* -------------------------------------------------------------------- clock */
 
+function timeOptions() {
+  const options = { hour: 'numeric', minute: '2-digit' };
+  // null means follow the locale, which is the default.
+  if (clock24h === true) {
+    options.hour12 = false;
+    options.hour = '2-digit';
+  } else if (clock24h === false) {
+    options.hour12 = true;
+  }
+  return options;
+}
+
 function tickClock() {
-  dom.clock.textContent = new Date().toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const now = new Date();
+  dom.clock.textContent = now.toLocaleTimeString([], timeOptions());
+
+  // Only theme 2 shows these, but keeping them current costs nothing and means
+  // switching themes never shows a stale time for a frame.
+  if (dom.lockClock) dom.lockClock.textContent = now.toLocaleTimeString([], timeOptions());
+  if (dom.lockDate) {
+    dom.lockDate.textContent = now.toLocaleDateString([], {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+  }
 }
 
 tickClock();
@@ -338,5 +392,6 @@ window.player.onVisibility((isVisible) => {
 });
 
 window.player.onState(onState);
+window.player.onAppearance(applyAppearance);
 window.player.ready();
 wake();
