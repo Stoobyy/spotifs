@@ -28,6 +28,7 @@ default "generic dark UI with a purple gradient" look.
 | Bridge stdin | Raw `StreamReader` over `OpenStandardInput()`, never `[Console]::In` | `[Console]::In` is a `SyncTextReader`, whose `ReadLineAsync` runs *synchronously*. Using it blocked the poll loop until the parent sent a command — and the parent has nothing to say until the user presses a button, so no state ever reached the UI. |
 | Window mode | Frameless window sized to the display, **not** Electron full screen | Full screen bought nothing visually — the window is already frameless — and on Windows, hiding a full-screen window left the compositor holding a black surface the user had to alt-tab out of. `resizable: false` / `thickFrame: false` additionally drop the DWM caption hairline along the top edge and Windows 11's rounded corners. Costs the window shadow and the open/close animation. |
 | Background motion | Three gradient washes animated on the compositor | The Apple Music read: colour that shifts slowly enough that you notice it without catching it moving. Transform and opacity only — no blur, no `mix-blend-mode`, no JS — so frames cost GPU compositing and nothing on the CPU. The blurred cover behind them became static, which is *cheaper* than the drift it replaced, and was dropped to `opacity: 0.4` so the washes have something to read against rather than competing with a full-screen flat tone. |
+| Lock screen proportions | Measured off the reference shot rather than eyeballed | Card 58% of screen width at 3.5:1, cover 82% of the card's height, title 30px. The first attempt was 45% wide at 4:1 with a 73%-height cover, which read as a thin strip instead of a glass slab. |
 | Themes | One set of elements and one set of state code, rearranged per theme by a `data-theme` attribute | The lock-screen layout is a different arrangement of exactly the same title, artist, artwork, scrubber and controls. Two markup trees would have meant two of every state update; this way `app.js` never knows which theme is on. |
 | Backgrounds | Four modes built from layers that already existed, switched by a `data-bg` attribute | Album hues is the existing arrangement. Solid hides the cover and washes and paints `.ambient` flat. Blurred cover brings the cover layer to full strength, zooms it to 1.85 and drops the washes. No new elements bar the image layer, and each mode reuses the vignette at a strength that suits it. Classic and Split both offer the picker; the lock screen theme is pinned to `hues` in `app.js` rather than every rule in the block having to name the themes it applies to. |
 | Which wash hues are real | A bin must carry 18% of the busiest bin's weight to earn a wash; anything short of that is ignored, and missing washes are filled with neighbours 14° either side of the dominant hue | The first version took the three busiest bins with any weight at all, so a cover with a few percent of an unrelated colour promoted it to a full-screen field — the backdrop showed colours the artwork didn't. The old fallback fanned out 38° and 76°, which invented hues outright on a single-colour cover. |
@@ -139,13 +140,17 @@ Spotify ──▶ Windows System Media Transport Controls
   entirely rather than reordered.
 - **Hairline along the top edge.** DWM painting caption colour on a frameless
   window that still carried `WS_THICKFRAME`.
-- **Ascenders and descenders sheared off the title.** `line-height: 1.08` is
+- **Ascenders and descenders sheared off the title, artist and album.** `line-height: 1.08` is
   tighter than the font's natural line height (~1.33em), so the half-leading
   went negative and the ink overflowed the content box — which the
   `overflow: hidden` that `-webkit-line-clamp` requires then clipped. Fixed with
   `padding-block: 0.18em` and a matching negative margin, so the glyphs get room
   without the layout moving. Loosening the leading would have worked too, at the
-  cost of the tight display setting the design wants.
+  cost of the tight display setting the design wants. The first fix used 0.18em,
+  which was enough for Segoe UI but not for a font with deeper metrics — an
+  imported SF Pro Rounded still clipped. Now 0.34em on the title, and .artist
+  and .album got the same treatment: they need `overflow: hidden` for their
+  ellipsis and had no bleed room at all.
 - **The washes were invisible.** Not the motion — the balance. The blurred cover
   at `opacity: 0.72` filled the screen with one flat tone, and three same-family
   washes underneath a heavy vignette had nothing to read against. The cover
