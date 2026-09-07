@@ -1,0 +1,12 @@
+# Normalise line endings in the repo so a Windows and a non-Windows
+# checkout never see each other every line as changed.
+* text=auto eol=lf
+
+# Binary — never touch these.
+*.png binary
+*.ico binary
+*.otf binary
+*.ttf binary
+*.ttc binary
+*.woff binary
+*.woff2 binary
