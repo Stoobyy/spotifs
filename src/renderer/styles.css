@@ -625,7 +625,10 @@ body.loading .empty {
   font-size: clamp(72px, 9.4vw, 168px);
   font-weight: 300;
   line-height: 1.02;
-  letter-spacing: -0.018em;
+  /* tabular-nums keeps the clock from shifting every time a 1 ticks past, but
+     it also gives narrow digits a full-width cell, which at this size reads as
+     gappy. The tracking pulls that back without giving up the stability. */
+  letter-spacing: -0.062em;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--ink) / 0.97);
   text-shadow: 0 2px 30px rgb(0 0 0 / 0.24);
