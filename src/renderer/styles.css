@@ -352,12 +352,17 @@ body.no-art .art-glow {
      tops of the t's and the tails of the y's. Pad the box out to cover the
      overflow and pull the same amount back off the margin, so the ink has room
      but the layout does not move. */
-  padding-block: 0.18em;
-  margin-block: -0.18em;
+  padding-block: 0.34em;
+  margin-block: -0.34em;
 }
 
 .artist {
-  margin-top: 11px;
+  /* Same ink-overflow trap as .title: overflow:hidden is needed for the
+     ellipsis, so the box has to be padded out to fit the deepest descenders of
+     whatever font the user picked. The margin cancels the layout effect. */
+  padding-block: 0.3em;
+  margin-top: calc(11px - 0.3em);
+  margin-bottom: -0.3em;
   font-size: clamp(17px, 1.32vw, 24px);
   font-weight: 400;
   letter-spacing: -0.008em;
@@ -368,7 +373,9 @@ body.no-art .art-glow {
 }
 
 .album {
-  margin-top: 5px;
+  padding-block: 0.3em;
+  margin-top: calc(5px - 0.3em);
+  margin-bottom: -0.3em;
   font-size: clamp(12.5px, 0.78vw, 15px);
   font-weight: 400;
   letter-spacing: 0.005em;
@@ -596,7 +603,7 @@ body.loading .empty {
 :root[data-theme="lockscreen"] .lock-head {
   position: fixed;
   z-index: 3;
-  top: clamp(28px, 5vh, 62px);
+  top: clamp(34px, 8vh, 96px);
   left: 0;
   right: 0;
   display: block;
@@ -624,11 +631,19 @@ body.loading .empty {
   text-shadow: 0 2px 30px rgb(0 0 0 / 0.24);
   /* Same clipping trap as .title: the tight leading pulls the box in tighter
      than the glyphs at this size. */
-  padding-block: 0.06em;
-  margin-block: -0.06em;
+  padding-block: 0.14em;
+  margin-block: -0.14em;
 }
 
-/* --- the card ------------------------------------------------------------ */
+/* --- the card -------------------------------------------------------------
+
+   Proportions taken off the reference shot (1571x993):
+     card   916 x 262   -> 58% of width, 3.5:1
+     art    215 square  -> 82% of the card's height, inset 24
+     title  30px, artist 25px, both well above the classic theme's card sizes
+     card sits 25% of the screen height off the bottom
+   The earlier version was 45% wide at 4:1 with a 73%-height cover, which is why
+   it read as a thin strip rather than the reference's chunky glass slab.      */
 
 :root[data-theme="lockscreen"] .chrome-top .clock {
   /* The big clock above already says the time. */
@@ -636,36 +651,34 @@ body.loading .empty {
 }
 
 :root[data-theme="lockscreen"] .stage {
-  display: block;
-  height: auto;
-  padding: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(15px, 1.4vw, 22px);
   position: fixed;
   z-index: 2;
   left: 50%;
-  bottom: clamp(52px, 13vh, 132px);
+  bottom: clamp(60px, 22vh, 210px);
   transform: translateX(-50%);
-  width: min(720px, 62vw);
-  padding: clamp(14px, 1.5vh, 20px);
-  border-radius: 26px;
-  background: rgb(255 255 255 / 0.1);
-  border: 0.5px solid rgb(255 255 255 / 0.16);
+  width: min(920px, 60vw);
+  height: auto;
+  padding: clamp(17px, 1.5vw, 24px);
+  border-radius: clamp(21px, 1.9vw, 30px);
+  background: rgb(255 255 255 / 0.11);
+  border: 0.5px solid rgb(255 255 255 / 0.17);
   box-shadow:
-    0 24px 70px rgb(0 0 0 / 0.34),
-    inset 0 0.5px 0 rgb(255 255 255 / 0.12);
-  backdrop-filter: blur(34px) saturate(170%);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: clamp(14px, 1.6vw, 22px);
+    0 26px 74px rgb(0 0 0 / 0.36),
+    inset 0 0.5px 0 rgb(255 255 255 / 0.13);
+  backdrop-filter: blur(36px) saturate(175%);
 }
 
 :root[data-theme="lockscreen"] .art {
-  width: clamp(96px, 9vw, 132px);
-  height: clamp(96px, 9vw, 132px);
+  width: clamp(132px, 13.4vw, 215px);
+  height: clamp(132px, 13.4vw, 215px);
 }
 
 :root[data-theme="lockscreen"] .art-frame {
-  border-radius: 12px;
+  border-radius: clamp(11px, 1.15vw, 18px);
 }
 
 /* The hero glow belongs to theme 1's big cover; at card size it just smears. */
@@ -674,17 +687,19 @@ body.loading .empty {
 }
 
 :root[data-theme="lockscreen"] .title {
-  font-size: clamp(17px, 1.35vw, 23px);
+  font-size: clamp(19px, 1.88vw, 30px);
   font-weight: 600;
-  line-height: 1.24;
-  letter-spacing: -0.01em;
+  line-height: 1.22;
+  letter-spacing: -0.012em;
   -webkit-line-clamp: 1;
 }
 
 :root[data-theme="lockscreen"] .artist {
-  margin-top: 1px;
-  font-size: clamp(14px, 1.05vw, 18px);
-  color: rgb(var(--ink) / 0.72);
+  margin-top: calc(2px - 0.3em);
+  font-size: clamp(15px, 1.56vw, 25px);
+  font-weight: 400;
+  line-height: 1.24;
+  color: rgb(var(--ink) / 0.74);
 }
 
 /* Artist and album share one line here, the way the reference does it. The
@@ -692,7 +707,7 @@ body.loading .empty {
    album, where attr() would otherwise resolve to an empty string. */
 :root[data-theme="lockscreen"] .artist[data-album]::after {
   content: " — " attr(data-album);
-  color: rgb(var(--ink) / 0.72);
+  color: rgb(var(--ink) / 0.74);
 }
 
 :root[data-theme="lockscreen"] .album {
@@ -700,23 +715,23 @@ body.loading .empty {
 }
 
 :root[data-theme="lockscreen"] .scrub {
-  margin-top: clamp(9px, 1.2vh, 15px);
+  margin-top: clamp(11px, 1.5vh, 20px);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 11px;
+  gap: clamp(9px, 0.85vw, 14px);
 }
 
 :root[data-theme="lockscreen"] .scrub-track {
   order: 2;
-  height: 5px;
-  border-radius: 3px;
-  background: rgb(var(--ink) / 0.22);
+  height: clamp(5px, 0.45vw, 7px);
+  border-radius: 4px;
+  background: rgb(var(--ink) / 0.26);
 }
 
 :root[data-theme="lockscreen"] .scrub-fill {
-  border-radius: 3px;
-  background: rgb(var(--ink) / 0.92);
+  border-radius: 4px;
+  background: rgb(var(--ink) / 0.95);
 }
 
 /* macOS shows a plain bar with no handle until you reach for it. */
@@ -741,14 +756,31 @@ body.loading .empty {
   order: 3;
 }
 
+:root[data-theme="lockscreen"] .times > * {
+  font-size: clamp(11px, 0.95vw, 15px);
+  color: rgb(var(--ink) / 0.72);
+}
+
 :root[data-theme="lockscreen"] .controls {
-  margin-top: clamp(4px, 0.8vh, 10px);
+  margin-top: clamp(6px, 1.1vh, 16px);
   justify-content: center;
-  gap: clamp(28px, 3.4vw, 52px);
+  gap: clamp(30px, 3.9vw, 62px);
+}
+
+/* The reference's transport is noticeably larger than the classic theme's,
+   and it is most of what fills the card's lower half. */
+:root[data-theme="lockscreen"] .ctrl svg {
+  width: clamp(24px, 2.6vw, 42px);
+  height: clamp(24px, 2.6vw, 42px);
+}
+
+:root[data-theme="lockscreen"] .ctrl-play svg {
+  width: clamp(26px, 2.85vw, 46px);
+  height: clamp(26px, 2.85vw, 46px);
 }
 
 :root[data-theme="lockscreen"] .ctrl {
-  color: rgb(var(--ink) / 0.95);
+  color: rgb(var(--ink) / 0.96);
 }
 
 /* The card is the interface here; fading it out on idle would leave an empty
