@@ -335,6 +335,11 @@ function applyAppearance(appearance) {
   if (!appearance) return;
 
   document.documentElement.dataset.theme = appearance.theme || 'classic';
+  document.documentElement.dataset.bg = appearance.background || 'hues';
+  document.documentElement.style.setProperty(
+    '--bg-solid',
+    appearance.backgroundColor || '#161a24'
+  );
 
   // The imported faces have to be declared before anything can name them.
   faceStyle.textContent = appearance.fontFaceCss || '';

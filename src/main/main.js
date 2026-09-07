@@ -36,6 +36,8 @@ function loadSettings() {
     hiResArtwork: true,
     launchAtLogin: false,
     theme: 'classic', // 'classic' | 'lockscreen'
+    background: 'hues', // classic only: 'hues' | 'solid' | 'cover'
+    backgroundColor: '#161a24', // used when background is 'solid'
     fontFamily: '', // '' = the built-in system stack
     clock24h: null, // null = follow the system locale
     customFonts: [], // [{ family, file }]
@@ -237,6 +239,8 @@ function onState(state) {
 function appearance() {
   return {
     theme: settings.theme,
+    background: settings.background,
+    backgroundColor: settings.backgroundColor,
     fontFamily: settings.fontFamily,
     clock24h: settings.clock24h,
     fontFaceCss: fonts.faceCss(settings.customFonts),
@@ -250,7 +254,7 @@ function pushAppearance() {
 
 /* ----------------------------------------------------------------- settings */
 
-const SETTINGS_SIZE = { width: 460, height: 712 };
+const SETTINGS_SIZE = { width: 460, height: 782 };
 
 function openSettings() {
   if (settingsWin && !settingsWin.isDestroyed()) {
@@ -322,7 +326,14 @@ function applySettings(patch) {
     pushState(true);
   }
 
-  if ('theme' in patch || 'fontFamily' in patch || 'clock24h' in patch || 'customFonts' in patch) {
+  if (
+    'theme' in patch ||
+    'background' in patch ||
+    'backgroundColor' in patch ||
+    'fontFamily' in patch ||
+    'clock24h' in patch ||
+    'customFonts' in patch
+  ) {
     pushAppearance();
   }
 

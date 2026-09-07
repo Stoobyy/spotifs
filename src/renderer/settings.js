@@ -8,6 +8,11 @@ const el = (id) => document.getElementById(id);
 
 const dom = {
   themes: el('themes'),
+  bgGroup: el('bgGroup'),
+  bgs: el('bgs'),
+  bgColorRow: el('bgColorRow'),
+  bgColor: el('bgColor'),
+  bgColorHex: el('bgColorHex'),
   fontSelect: el('fontSelect'),
   fontPreview: el('fontPreview'),
   fontHint: el('fontHint'),
@@ -89,6 +94,22 @@ function renderFontOptions() {
   }
 }
 
+function renderBackground() {
+  // Background only means anything for the classic theme.
+  dom.bgGroup.hidden = state.theme !== 'classic';
+
+  Array.from(dom.bgs.querySelectorAll('.bg')).forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.bg === state.background);
+  });
+
+  const colour = state.backgroundColor || '#161a24';
+  dom.bgColorRow.hidden = state.background !== 'solid';
+  dom.bgColor.value = colour;
+  dom.bgColorHex.textContent = colour;
+  // Keeps the "Solid colour" tile showing the colour it actually selects.
+  document.documentElement.style.setProperty('--bg-solid-preview', colour);
+}
+
 function renderPreview() {
   const family = state.fontFamily;
   document.documentElement.style.setProperty(
@@ -115,6 +136,7 @@ function render() {
     button.classList.toggle('is-active', button.dataset.theme === state.theme);
   });
 
+  renderBackground();
   renderFontOptions();
   renderPreview();
   renderDisplays();
@@ -129,6 +151,18 @@ function render() {
 dom.themes.addEventListener('click', (event) => {
   const button = event.target.closest('.theme');
   if (button) apply({ theme: button.dataset.theme });
+});
+
+dom.bgs.addEventListener('click', (event) => {
+  const button = event.target.closest('.bg');
+  if (button) apply({ background: button.dataset.bg });
+});
+
+// 'input' fires continuously while dragging in the picker, which is what makes
+// the player update live; it is only ever a settings write plus an IPC send.
+dom.bgColor.addEventListener('input', () => {
+  dom.bgColorHex.textContent = dom.bgColor.value;
+  apply({ backgroundColor: dom.bgColor.value });
 });
 
 dom.fontSelect.addEventListener('change', () => {

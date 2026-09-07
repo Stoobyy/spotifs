@@ -763,3 +763,56 @@ body.loading .empty {
 :root[data-theme="lockscreen"] .empty {
   bottom: auto;
 }
+
+/* ============================================================================
+   CLASSIC — background options
+
+   Three ways to fill the screen behind the player, all built from layers that
+   already exist. Scoped to the classic theme; the lock screen keeps the default
+   arrangement, which is what `hues` is.
+   ========================================================================== */
+
+/* --- 2. solid colour ----------------------------------------------------- */
+
+:root[data-theme="classic"][data-bg="solid"] .ambient {
+  background: var(--bg-solid, #161a24);
+}
+
+:root[data-theme="classic"][data-bg="solid"] .ambient-layer,
+:root[data-theme="classic"][data-bg="solid"] .wash {
+  display: none;
+}
+
+/* A flat colour has no shape of its own, so the vignette is the only thing
+   keeping the corners from looking like a dead rectangle. Kept, but lighter —
+   there is no bright artwork to hold down here. */
+:root[data-theme="classic"][data-bg="solid"] .ambient-veil {
+  background:
+    radial-gradient(125% 110% at 50% 34%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0.22) 72%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+/* --- 3. zoomed, blurred cover -------------------------------------------- */
+
+/* The cover carries the whole background here, so it comes up to full strength
+   and the washes get out of the way. Blurring less than the `hues` layer is
+   deliberate: at this zoom there is little detail left to hide, and 84px would
+   flatten it back into a single tone — which is what `hues` already is. */
+:root[data-theme="classic"][data-bg="cover"] .ambient-layer {
+  filter: blur(52px) saturate(140%) brightness(0.6);
+}
+
+:root[data-theme="classic"][data-bg="cover"] .ambient-layer.is-active {
+  opacity: 0.96;
+  transform: scale(1.85);
+}
+
+:root[data-theme="classic"][data-bg="cover"] .wash {
+  display: none;
+}
+
+/* Full-strength artwork behind the type needs the vignette back up. */
+:root[data-theme="classic"][data-bg="cover"] .ambient-veil {
+  background:
+    radial-gradient(120% 105% at 50% 32%, rgba(0, 0, 0, 0.1) 14%, rgba(0, 0, 0, 0.44) 66%, rgba(0, 0, 0, 0.68) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.12) 34%, rgba(0, 0, 0, 0.46) 100%);
+}

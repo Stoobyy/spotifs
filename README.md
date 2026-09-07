@@ -56,8 +56,18 @@ with Windows".
 | **Classic** | Big cover on the left, metadata and controls on the right. |
 | **Lock Screen** | Date and a large clock centred at the top, everything else in one floating glass card low on the screen, after the macOS lock screen. |
 
-Both themes share the same ambient backdrop and the same state, so switching is
-instant and nothing is lost either way.
+Both themes share the same state, so switching is instant and nothing is lost
+either way.
+
+### Backgrounds (Classic only)
+
+| Option | What it does |
+| --- | --- |
+| **Album hues** | The default. Three soft colour fields taken from the cover's three busiest hues, drifting slowly past each other over a faint blurred cover. |
+| **Solid colour** | A flat colour of your choosing, with only a light vignette. Pick it with the colour well that appears under the options. |
+| **Blurred cover** | The album art itself, zoomed well past the frame and blurred, at full strength. Keeps the shape of the artwork rather than reducing it to a tone. |
+
+The Lock Screen theme always uses Album hues.
 
 ### Fonts
 

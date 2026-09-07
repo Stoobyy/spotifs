@@ -29,6 +29,8 @@ default "generic dark UI with a purple gradient" look.
 | Window mode | Frameless window sized to the display, **not** Electron full screen | Full screen bought nothing visually — the window is already frameless — and on Windows, hiding a full-screen window left the compositor holding a black surface the user had to alt-tab out of. `resizable: false` / `thickFrame: false` additionally drop the DWM caption hairline along the top edge and Windows 11's rounded corners. Costs the window shadow and the open/close animation. |
 | Background motion | Three gradient washes animated on the compositor | The Apple Music read: colour that shifts slowly enough that you notice it without catching it moving. Transform and opacity only — no blur, no `mix-blend-mode`, no JS — so frames cost GPU compositing and nothing on the CPU. The blurred cover behind them became static, which is *cheaper* than the drift it replaced, and was dropped to `opacity: 0.4` so the washes have something to read against rather than competing with a full-screen flat tone. |
 | Themes | One set of elements and one set of state code, rearranged per theme by a `data-theme` attribute | The lock-screen layout is a different arrangement of exactly the same title, artist, artwork, scrubber and controls. Two markup trees would have meant two of every state update; this way `app.js` never knows which theme is on. |
+| Classic backgrounds | Three modes built from layers that already existed, switched by a `data-bg` attribute | Album hues is the existing arrangement. Solid hides the cover and washes and paints `.ambient` flat. Blurred cover brings the cover layer to full strength, zooms it to 1.85 and drops the washes. No new elements, and each mode reuses the vignette at a strength that suits it. |
+| Blur radius per background | 84px for hues, 52px for blurred cover | At 1.85 zoom there is little detail left to hide, and 84px would flatten the cover back into a single tone — which is exactly what Album hues already is. The two modes have to look different to be worth having. |
 | Font choice | Family name prepended to the built-in stack, never replacing it | A font that is missing a glyph — or that gets uninstalled — degrades to the default rather than to whatever the OS picks. Imported files are copied into userData so moving the original doesn't break the display. |
 | Font enumeration | PowerShell `InstalledFontCollection` | Electron has no API for this. Chromium's `queryLocalFonts()` exists but needs a permission grant and a secure context; the machine already depends on PowerShell for the bridge, so this adds nothing new. |
 | Settings surface | A window, not a growing tray menu | Themes and a font list don't fit a context menu. The tray is back to three items — Open, Settings, Quit — and everything configurable moved into the window. |
@@ -89,6 +91,10 @@ Spotify ──▶ Windows System Media Transport Controls
 - Two themes, switchable live from Settings: **Classic** (big cover, landscape)
   and **Lock Screen** (centred date and large clock, transport in a floating
   glass card, after macOS). Same elements, rearranged by `data-theme`.
+- Three Classic backgrounds, switchable live: album hues (the drifting washes),
+  a solid colour chosen with a colour well, or the cover zoomed to 1.85 and
+  blurred at full strength. Measured 21/255 mean apart from the hues mode on
+  structured artwork, so the choice is visible rather than nominal.
 - Any installed font, or an imported `.ttf` / `.otf` / `.ttc` / `.woff` /
   `.woff2`, with a live preview in Settings. Imported files are copied into
   userData; a removed or uninstalled font falls back rather than breaking.
