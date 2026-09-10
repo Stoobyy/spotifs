@@ -726,10 +726,10 @@ body.loading .empty {
 }
 
 /* Artist and album share one line here, the way the reference does it. The
-   attribute selector keeps the em dash from appearing on a track with no
+   attribute selector keeps the separator from appearing on a track with no
    album, where attr() would otherwise resolve to an empty string. */
 :root[data-theme="lockscreen"] .artist[data-album]::after {
-  content: " — " attr(data-album);
+  content: " · " attr(data-album);
   color: rgb(var(--ink) / 0.74);
 }
 
@@ -1037,9 +1037,9 @@ body.loading .empty {
 }
 
 /* Artist and album on one line, as the reference has them. The attribute
-   selector keeps the em dash off a track with no album. */
+   selector keeps the separator off a track with no album. */
 :root[data-theme="split"] .artist[data-album]::after {
-  content: " — " attr(data-album);
+  content: " · " attr(data-album);
   color: rgb(var(--ink) / 0.74);
 }
 

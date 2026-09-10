@@ -37,7 +37,7 @@ function loadSettings() {
     hiResArtwork: true,
     launchAtLogin: false,
     theme: 'classic', // 'classic' | 'lockscreen' | 'split'
-    background: 'cover', // 'cover' | 'hues' | 'solid' | 'image' (not lockscreen)
+    background: 'cover', // 'cover' | 'hues' | 'solid' | 'image'
     backgroundColor: '#161a24', // used when background is 'solid'
     backgroundImage: '', // copy in userData, used when background is 'image'
     fontFamily: '', // '' = the built-in system stack

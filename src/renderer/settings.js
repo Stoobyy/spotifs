@@ -29,7 +29,7 @@ const dom = {
   closeBtn: el('closeBtn'),
 };
 
-const BG_HINT = 'Applies to the Classic and Split themes.';
+const BG_HINT = 'Blurred cover, a flat colour, the album’s hues, or a picture of your own.';
 
 const DEFAULT_HINT =
   "Any font installed on this PC, or import a .ttf, .otf, .ttc, .woff or .woff2.";
@@ -101,9 +101,6 @@ function renderFontOptions() {
 }
 
 function renderBackground() {
-  // The lock screen theme is its own backdrop; the other two take a choice.
-  dom.bgGroup.hidden = state.theme === 'lockscreen';
-
   Array.from(dom.bgs.querySelectorAll('.bg')).forEach((button) => {
     button.classList.toggle('is-active', button.dataset.bg === state.background);
   });

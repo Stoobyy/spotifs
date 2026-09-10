@@ -377,11 +377,7 @@ function applyAppearance(appearance) {
   const theme = appearance.theme || 'classic';
   document.documentElement.dataset.theme = theme;
 
-  // The lock screen theme has no background picker — it is the drifting washes
-  // by definition — so it pins the mode here rather than every background rule
-  // in styles.css having to name the themes it applies to.
-  document.documentElement.dataset.bg =
-    theme === 'lockscreen' ? 'hues' : appearance.background || 'cover';
+  document.documentElement.dataset.bg = appearance.background || 'cover';
 
   const root = document.documentElement.style;
   root.setProperty('--bg-solid', appearance.backgroundColor || '#161a24');
