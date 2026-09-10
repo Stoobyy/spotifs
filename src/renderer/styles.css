@@ -686,6 +686,12 @@ body.loading .empty {
   width: min(920px, 60vw);
   height: auto;
   padding: clamp(17px, 1.5vw, 24px);
+  /* Room for the transport row, which is taken out of the text column and
+     pinned across the full card width so it centres on the screen. */
+  padding-bottom: calc(var(--lock-pad) + var(--lock-ctrl) + var(--lock-ctrl-gap));
+  --lock-pad: clamp(17px, 1.5vw, 24px);
+  --lock-ctrl: clamp(26px, 2.85vw, 46px);
+  --lock-ctrl-gap: clamp(8px, 1vw, 14px);
   border-radius: clamp(21px, 1.9vw, 30px);
   background: rgb(255 255 255 / 0.11);
   border: 0.5px solid rgb(255 255 255 / 0.17);
@@ -784,9 +790,19 @@ body.loading .empty {
   color: rgb(var(--ink) / 0.72);
 }
 
+/* Pulled out of the text column and laid across the whole card. Centred in the
+   column it sat ~110px right of the card's (and so the screen's) centre line,
+   because the artwork takes the left of the card. Absolute against .stage,
+   which is already the positioning context; .stage reserves the height. */
 :root[data-theme="lockscreen"] .controls {
-  margin-top: clamp(6px, 1.1vh, 16px);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--lock-pad);
+  height: var(--lock-ctrl);
+  margin-top: 0;
   justify-content: center;
+  align-items: center;
   gap: clamp(30px, 3.9vw, 62px);
 }
 
