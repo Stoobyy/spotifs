@@ -36,7 +36,7 @@ function loadSettings() {
     displayId: null,
     hiResArtwork: true,
     launchAtLogin: false,
-    theme: 'classic', // 'classic' | 'lockscreen' | 'split'
+    theme: 'classic', // 'classic' | 'lockscreen' | 'split' | 'dial'
     background: 'cover', // 'cover' | 'hues' | 'solid' | 'image'
     backgroundColor: '#161a24', // used when background is 'solid'
     backgroundImage: '', // copy in userData, used when background is 'image'
@@ -260,7 +260,7 @@ function pushAppearance() {
 
 /* ----------------------------------------------------------------- settings */
 
-const SETTINGS_SIZE = { width: 460, height: 838 };
+const SETTINGS_SIZE = { width: 460, height: 900 };
 
 function openSettings() {
   if (settingsWin && !settingsWin.isDestroyed()) {

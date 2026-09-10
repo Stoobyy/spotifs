@@ -26,6 +26,26 @@
       <div class="lock-clock" id="lockClock"></div>
     </div>
 
+    <!-- Theme 4's analogue clock. The 60 ticks and 12 numerals are generated
+         once by app.js; only the hands and the date are declared here. -->
+    <div class="dial" aria-hidden="true">
+      <svg class="dial-face" viewBox="0 0 200 200">
+        <g id="dialMarks"></g>
+        <g class="hand hand-hour" id="handHour">
+          <line x1="100" y1="108" x2="100" y2="56" />
+        </g>
+        <g class="hand hand-minute" id="handMinute">
+          <line x1="100" y1="108" x2="100" y2="28" />
+        </g>
+        <g class="hand hand-second" id="handSecond">
+          <line x1="100" y1="118" x2="100" y2="18" />
+        </g>
+        <circle class="dial-cap" cx="100" cy="100" r="4.6" />
+        <circle class="dial-cap-inner" cx="100" cy="100" r="1.9" />
+      </svg>
+      <div class="dial-date" id="dialDate"></div>
+    </div>
+
     <div class="chrome-top">
       <div class="clock" id="clock">--:--</div>
       <button class="close chrome" id="closeBtn" aria-label="Close" title="Close (Esc)">

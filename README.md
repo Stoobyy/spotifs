@@ -56,8 +56,9 @@ with Windows".
 | **Classic** | Big cover on the left, metadata and controls on the right. |
 | **Lock Screen** | Date and a large clock centred at the top, everything else in one floating glass card low on the screen, after the macOS lock screen. |
 | **Split** | An oversized clock and date tinted from the artwork on the left, the whole player gathered into one wide glass card on the right, after the iPad lock screen. |
+| **Dial** | An analogue clock with the date beneath it on the left, and a tall card on the right — cover on top, title and artist centred under it, then the scrubber and transport — after the Apple Watch now-playing face. |
 
-All three share the same state, so switching is instant and nothing is lost
+All four share the same state, so switching is instant and nothing is lost
 whichever you land on.
 
 ### Backgrounds

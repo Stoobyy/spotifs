@@ -25,6 +25,11 @@ const dom = {
   clock: el('clock'),
   lockDate: el('lockDate'),
   lockClock: el('lockClock'),
+  dialMarks: el('dialMarks'),
+  dialDate: el('dialDate'),
+  handHour: el('handHour'),
+  handMinute: el('handMinute'),
+  handSecond: el('handSecond'),
 };
 
 // Kept in sync with the stack in styles.css; a chosen font is prepended to it
@@ -36,6 +41,8 @@ const faceStyle = document.createElement('style');
 document.head.appendChild(faceStyle);
 
 let clock24h = null;
+let theme = 'classic';
+let dialTimer = null;
 // Seeded from the markup: appearance arrives before the first state, and
 // fitTitle would otherwise blank the "Nothing playing" placeholder.
 let titleText = dom.title.textContent;
@@ -374,8 +381,9 @@ function fitTitle() {
 function applyAppearance(appearance) {
   if (!appearance) return;
 
-  const theme = appearance.theme || 'classic';
+  theme = appearance.theme || 'classic';
   document.documentElement.dataset.theme = theme;
+  ensureDial();
 
   document.documentElement.dataset.bg = appearance.background || 'cover';
 
@@ -430,10 +438,75 @@ function tickClock() {
       month: 'long',
     });
   }
+  // Theme 4 wants the short form under the dial; CSS sets it in capitals.
+  if (dom.dialDate) {
+    dom.dialDate.textContent = now.toLocaleDateString([], { day: 'numeric', month: 'long' });
+  }
 }
 
 tickClock();
 setInterval(tickClock, 15000);
+
+/* --------------------------------------------------------------------- dial */
+
+// The face is 60 ticks and 12 numerals on a 200-unit circle. Generated rather
+// than hand-written: seventy-two near-identical SVG elements in index.html
+// would be a maintenance hazard for no gain.
+function buildDial() {
+  const marks = dom.dialMarks;
+  if (!marks || marks.childElementCount) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const C = 100;
+
+  for (let i = 0; i < 60; i += 1) {
+    const major = i % 5 === 0;
+    const a = (i / 60) * Math.PI * 2;
+    const inner = major ? 87.5 : 91.5;
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', (C + Math.sin(a) * inner).toFixed(2));
+    line.setAttribute('y1', (C - Math.cos(a) * inner).toFixed(2));
+    line.setAttribute('x2', (C + Math.sin(a) * 97).toFixed(2));
+    line.setAttribute('y2', (C - Math.cos(a) * 97).toFixed(2));
+    line.setAttribute('class', major ? 'dial-tick dial-tick-major' : 'dial-tick');
+    marks.appendChild(line);
+  }
+
+  for (let n = 1; n <= 12; n += 1) {
+    const a = (n / 12) * Math.PI * 2;
+    const text = document.createElementNS(NS, 'text');
+    text.setAttribute('x', (C + Math.sin(a) * 70).toFixed(2));
+    text.setAttribute('y', (C - Math.cos(a) * 70).toFixed(2));
+    text.setAttribute('class', 'dial-numeral');
+    text.textContent = String(n);
+    marks.appendChild(text);
+  }
+}
+
+function tickDial() {
+  if (!dom.handHour) return;
+  const now = new Date();
+  const s = now.getSeconds();
+  const m = now.getMinutes() + s / 60;
+  const h = (now.getHours() % 12) + m / 60;
+  dom.handSecond.setAttribute('transform', `rotate(${s * 6} 100 100)`);
+  dom.handMinute.setAttribute('transform', `rotate(${(m * 6).toFixed(2)} 100 100)`);
+  dom.handHour.setAttribute('transform', `rotate(${(h * 30).toFixed(2)} 100 100)`);
+}
+
+// One tick a second, and only while the dial can actually be seen. The hands
+// are rotated by attribute rather than a CSS animation so the reduced-motion
+// catch-all can't collapse a 60s sweep into a blur.
+function ensureDial() {
+  const wanted = visible && theme === 'dial';
+  if (wanted && dialTimer === null) {
+    buildDial();
+    tickDial();
+    dialTimer = setInterval(tickDial, 1000);
+  } else if (!wanted && dialTimer !== null) {
+    clearInterval(dialTimer);
+    dialTimer = null;
+  }
+}
 
 /* --------------------------------------------------------------------- boot */
 
@@ -444,6 +517,7 @@ window.player.onVisibility((isVisible) => {
     wake();
   }
   ensureLoop();
+  ensureDial();
 });
 
 window.addEventListener('resize', fitTitle);

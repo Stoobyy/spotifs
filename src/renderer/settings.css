@@ -120,7 +120,7 @@ body {
 
 .themes {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 9px;
 }
 
@@ -165,7 +165,7 @@ body {
 .theme-art {
   display: block;
   position: relative;
-  height: 60px;
+  height: 66px;
   border-radius: 7px;
   overflow: hidden;
   background: linear-gradient(140deg, #5b4a86 0%, #3a5a7a 52%, #6d4a63 100%);
@@ -275,6 +275,49 @@ body {
 .theme-art-split .ts-card span {
   width: 13px;
   height: 13px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.8);
+}
+
+.theme-art-dial .td-face {
+  position: absolute;
+  left: 10%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  border: 2px dotted rgb(255 255 255 / 0.55);
+}
+
+/* Two hands, drawn as one bent line. */
+.theme-art-dial .td-face span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 9px;
+  border-left: 2px solid rgb(255 255 255 / 0.9);
+  border-bottom: 2px solid rgb(255 255 255 / 0.9);
+  transform: translate(-2px, -8px);
+}
+
+.theme-art-dial .td-card {
+  position: absolute;
+  right: 12%;
+  top: 12%;
+  bottom: 12%;
+  width: 30%;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 0.18);
+  border: 0.5px solid rgb(255 255 255 / 0.3);
+  padding: 5px;
+}
+
+.theme-art-dial .td-card span {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: 3px;
   background: rgb(255 255 255 / 0.8);
 }
