@@ -138,7 +138,7 @@ function renderDisplays() {
   displays.forEach((display) => {
     const option = document.createElement('option');
     option.value = String(display.id);
-    option.textContent = `${display.label} — ${display.size}`;
+    option.textContent = `${display.label} · ${display.size}`;
     const chosen = state.displayId == null ? display.primary : String(state.displayId) === String(display.id);
     if (chosen) option.selected = true;
     dom.displaySelect.appendChild(option);

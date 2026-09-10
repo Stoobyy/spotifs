@@ -990,13 +990,15 @@ body.loading .empty {
 
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  /* The cover is taller than the two lines of type beside it; letting the
-     artist's row take up the slack keeps the title pinned to the top of the
-     cover instead of the pair drifting down the middle. */
-  grid-template-rows: auto 1fr auto auto;
+  /* The cover is taller than the two lines of type beside it. Two equal rows
+     under it put the row boundary at the cover's midline; the title sits on
+     that line and the artist hangs from it, so the pair is centred on the
+     cover. No row gap — it would open up between title and artist too — so
+     the scrubber and transport carry their own spacing. */
+  grid-template-rows: 1fr 1fr auto auto;
   align-items: start;
   column-gap: clamp(16px, 1.7vw, 28px);
-  row-gap: clamp(10px, 1.5vh, 22px);
+  row-gap: 0;
 }
 
 :root[data-theme="split"] .art {
@@ -1018,6 +1020,7 @@ body.loading .empty {
 :root[data-theme="split"] .title {
   grid-column: 2;
   grid-row: 1;
+  align-self: end;
   min-width: 0;
   font-size: clamp(21px, 1.85vw, 36px);
   font-weight: 600;
@@ -1031,6 +1034,7 @@ body.loading .empty {
   grid-row: 2;
   align-self: start;
   margin-top: 0;
+  padding-top: 0.22em;
   min-width: 0;
   font-size: clamp(16px, 1.4vw, 27px);
   color: rgb(var(--ink) / 0.74);
@@ -1052,7 +1056,7 @@ body.loading .empty {
 :root[data-theme="split"] .scrub {
   grid-column: 1 / -1;
   grid-row: 3;
-  margin-top: 0;
+  margin-top: clamp(12px, 1.8vh, 26px);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -1111,7 +1115,7 @@ body.loading .empty {
 :root[data-theme="split"] .controls {
   grid-column: 1 / -1;
   grid-row: 4;
-  margin: 0;
+  margin: clamp(10px, 1.5vh, 22px) 0 0;
   justify-content: center;
   gap: clamp(40px, 5vw, 92px);
 }

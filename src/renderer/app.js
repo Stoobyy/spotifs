@@ -152,10 +152,10 @@ function onState(state) {
     fitTitle();
     dom.artist.textContent = state.artist || '';
     dom.album.textContent = state.album || '';
-    // Theme 2 renders "Artist — Album" as one line, off this attribute.
+    // Themes 2 and 3 render "Artist · Album" as one line, off this attribute.
     if (state.album) dom.artist.dataset.album = state.album;
     else delete dom.artist.dataset.album;
-    document.title = state.title ? `${state.title} — ${state.artist}` : 'Now Playing';
+    document.title = state.title ? `${state.title} · ${state.artist}` : 'Now Playing';
     if (changed && state.hasTrack) replay();
   }
 
