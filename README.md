@@ -1,201 +1,97 @@
 # Now Playing
 
-A full-screen now-playing display for Spotify on Windows. Lives in the system
-tray; click the tray icon and the current track fills the screen.
+A full-screen now-playing display for Spotify on Windows. It lives in the system tray; click the icon and the current track fills the screen.
 
-By default there is no Spotify login, no developer account and no modification
-to the Spotify client: it reads the same system media session that powers the
-Windows volume-key overlay, so it works the moment Spotify is playing. If you
-want reliable seeking and Spotify's own artwork, you can optionally connect your
-Spotify account instead (see *Playback source* below).
+![Classic theme](docs/screenshots/classic.png)
 
-## Requirements
+Works out of the box with no sign-in — it reads the same Windows media session that powers the volume-key overlay. Optionally connect a Spotify account for reliable seeking and Spotify's own artwork.
 
-- Windows 10 or 11
-- Node.js 18+ (only to install and run; not needed once packaged)
-- Spotify desktop app
+## Themes
 
-## Run it
+Four layouts, switchable live from Settings. All share the same backdrop options and the same playback state, so switching is instant.
+
+| | |
+| --- | --- |
+| **Classic** — big cover, landscape | **Lock Screen** — date, clock, glass card |
+| ![Classic](docs/screenshots/classic.png) | ![Lock Screen](docs/screenshots/lockscreen.png) |
+| **Split** — clock left, card right | **Dial** — analogue clock, tall card |
+| ![Split](docs/screenshots/split.png) | ![Dial](docs/screenshots/dial.png) |
+
+### Backgrounds
+
+| Option | Description |
+| --- | --- |
+| **Blurred cover** (default) | The album art, zoomed and blurred, at full strength. |
+| **Solid colour** | A flat colour of your choosing. |
+| **Album hues** | Three soft colour fields drawn from the cover, drifting slowly past each other. |
+| **Image** | A picture of your own. |
+
+### Fonts
+
+Any font installed on the PC, or import a `.ttf`, `.otf`, `.ttc`, `.woff` or `.woff2` file. Imported fonts are copied into the app's data folder, so the original can be moved or deleted afterwards.
+
+## Playback sources
+
+| Source | Setup | Notes |
+| --- | --- | --- |
+| **System** (default) | None | Reads the Windows media session. Artwork is upgraded via the iTunes catalogue, since Windows only provides a small thumbnail. Seek availability depends on the Spotify build. |
+| **Spotify account** | One-time browser sign-in | Reads the Spotify Web API directly. Reliable seek, covers straight from Spotify. Transport controls require Spotify Premium (a Spotify restriction). |
+
+Switch between them from the tray menu or Settings. Choosing *Spotify account* opens Spotify's consent page in your browser; approve it and you're connected. Sign-in uses OAuth with PKCE and requests only the three scopes the display needs: `user-read-playback-state`, `user-modify-playback-state`, `user-read-currently-playing`. Tokens are stored locally and refreshed silently. **Disconnect** removes them.
+
+## Controls
+
+| Action | How |
+| --- | --- |
+| Open | Click the tray icon |
+| Close | `Esc`, or the ✕ top-right |
+| Play / pause | `Space`, or the centre button |
+| Next / previous | `N` / `P`, or the side buttons |
+| Seek ±5s | `←` / `→` |
+| Scrub | Drag the progress bar |
+
+The controls and close button fade after a few seconds of stillness and return on mouse movement. The clock stays.
+
+## Install
+
+**Requirements:** Windows 10 or 11, the Spotify desktop app, and Node.js 18+ to build.
 
 ```powershell
-cd D:\spotifs
+git clone https://github.com/Stoobyy/spotifs.git
+cd spotifs
 npm install
 npm start
 ```
 
-The app starts hidden — look for the tray icon (you may need to expand the
-hidden-icons arrow next to the clock, and can drag it onto the taskbar to keep
-it visible).
-
-## Build an installer
+The app starts hidden — look for the tray icon. To build an installer:
 
 ```powershell
 npm run dist
 ```
 
-Produces an NSIS installer under `dist\`.
-
-## Using it
-
-| Action | How |
-| --- | --- |
-| Open the full-screen view | Click the tray icon |
-| Close it | `Esc`, or the ✕ top-right |
-| Play / pause | `Space`, or the centre button |
-| Next / previous | `N` / `P`, or the side buttons |
-| Seek ±5s | `←` / `→` |
-| Scrub | Drag the progress bar |
-| Close Settings | `Esc`, or the ✕ top-right |
-
-Right-click the tray icon and choose **Settings** for themes, fonts, the clock
-format, the display picker (multi-monitor), high-resolution artwork and "Start
-with Windows".
-
-### Themes
-
-| Theme | What it looks like |
-| --- | --- |
-| **Classic** | Big cover on the left, metadata and controls on the right. |
-| **Lock Screen** | Date and a large clock centred at the top, everything else in one floating glass card low on the screen, after the macOS lock screen. |
-| **Split** | An oversized clock and date tinted from the artwork on the left, the whole player gathered into one wide glass card on the right, after the iPad lock screen. |
-| **Dial** | An analogue clock with the date beneath it on the left, and a tall card on the right — cover on top, title and artist centred under it, then the scrubber and transport — after the Apple Watch now-playing face. |
-
-All four share the same state, so switching is instant and nothing is lost
-whichever you land on.
-
-### Backgrounds
-
-| Option | What it does |
-| --- | --- |
-| **Album hues** | Three soft colour fields taken from the cover's significant hues, drifting slowly past each other over a faint blurred cover. |
-| **Solid colour** | A flat colour of your choosing, with only a light vignette. Pick it with the colour well that appears under the options. |
-| **Blurred cover** | The default. The album art itself, zoomed well past the frame and blurred, at full strength — it keeps the shape of the artwork rather than reducing it to a tone. |
-| **Image** | A picture of your own — `.jpg`, `.png`, `.webp`, `.gif` or `.bmp` — filling the screen like a wallpaper, unblurred and under a much lighter vignette than the cover modes get. |
-
-Backgrounds apply to the **Classic** and **Split** themes; the Lock Screen theme
-always uses Album hues.
-
-The image you pick is copied into `%APPDATA%\Now Playing\backgrounds`, so moving
-or deleting the original later won't break the display, and only one is kept —
-choosing another replaces it. **Remove** deletes that copy and falls back to the
-blurred cover.
-
-### Fonts
-
-Pick any font installed on the PC, or **Import font file…** to use one that
-isn't installed — `.ttf`, `.otf`, `.ttc`, `.woff` or `.woff2`. Imported files
-are copied into `%APPDATA%\Now Playing\fonts`, so moving or deleting the
-original later won't break the display; **Remove** deletes that copy. The chosen
-font is layered on top of the built-in stack rather than replacing it, so
-anything it lacks still falls back cleanly.
-
-The installed-font list is read once when the app starts. Install a font while
-it's running and you'll need to restart before it shows up.
-
-The controls and close button fade out after ~3 seconds of stillness and come
-back on any mouse movement. The clock stays.
-
-### Playback source
-
-Two ways to get now-playing data, switchable from the tray menu or Settings.
-
-| Source | Setup | What you get |
-| --- | --- | --- |
-| **System** (default) | None. | Whatever the Windows media session exposes. Artwork is always upgraded through the iTunes catalogue, since Windows only hands over a ~300px thumbnail. Seek depends on the Spotify build. |
-| **Spotify account** | A one-time sign-in in your browser. | Position and controls straight from the Web API, reliable seek, 640px covers from Spotify itself. Needs Spotify Premium for the transport controls to work; that's a Spotify restriction. |
-
-**Connecting a Spotify account.** Settings → Playback source → **Spotify
-account**. Your browser opens Spotify's consent page; approve it and you're done.
-**Disconnect** appears under the tiles once connected.
-
-The app ships with its client ID (`DEFAULT_CLIENT_ID` in `src/main/spotify.js`).
-Under PKCE that's public by design and can't do anything on its own. To use your
-own instead, create an app at
-[developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) with
-the redirect URI `http://127.0.0.1:48273/callback` — Spotify matches it
-character for character, port included — and set `spotifyClientId` in
-`settings.json`.
-
-The sign-in uses OAuth with PKCE, so there is no client secret anywhere. Only
-three scopes are requested — `user-read-playback-state`,
-`user-modify-playback-state`, `user-read-currently-playing` — which is exactly
-what the UI needs and nothing more. The refresh token is kept in
-`%APPDATA%\spotifs\spotify-auth.json`, separate from settings, and access tokens
-are renewed silently before they expire. **Disconnect** deletes it.
-
-The Web API has no push channel, so the app polls `/me/player` once a second
-while the player is on screen and every five seconds when it's hidden.
-
 ## How it works
 
 ```
-Spotify  ──▶  Windows System Media Transport Controls
-                          │
-              smtc-bridge.ps1  (long-lived PowerShell + WinRT)
-                          │  NDJSON over stdout / commands over stdin
-                   Electron main process
-                          │  IPC
-                    Renderer (the UI)
+Spotify ──▶ Windows media session ──▶ PowerShell/WinRT bridge ──┐
+                                                                ├──▶ Electron main ──▶ Renderer
+Spotify ──▶ Web API (/me/player) ──▶ Spotify provider ──────────┘
 ```
 
-- **`src/main/smtc-bridge.ps1`** — one persistent PowerShell process that polls
-  `GlobalSystemMediaTransportControlsSessionManager`, prefers the Spotify
-  session, extracts the cover thumbnail, and emits a JSON line whenever
-  something changes. Playback commands come back in over stdin. Deliberately no
-  native Node addon, so `npm install` can never fail on a compiler.
-- **`src/main/artwork.js`** — Spotify only publishes a ~300px thumbnail, which
-  looks soft at full screen, so covers are quietly upgraded via Apple's public
-  iTunes Search API and cached on disk. Fails silently back to the thumbnail;
-  toggle it off in Settings.
-- **`src/main/palette.js`** — pulls one accent colour from the cover in the main
-  process (a `file://` canvas in the renderer would be tainted), with saturation
-  and lightness clamped so a loud cover can't blow out the interface.
-- **`src/main/wallpaper.js`** — copies a chosen background image into userData
-  and hands the renderer its `file://` URL, so the picture survives the original
-  being moved.
-- **`src/main/fonts.js`** — enumerates installed families (via PowerShell's
-  `InstalledFontCollection`) and copies imported font files into userData,
-  handing the renderer `@font-face` rules pointing at them.
-- **`src/renderer/settings.*`** — the settings window.
-- **`src/renderer/`** — the display. Position is extrapolated between session
-  updates so the progress bar moves smoothly rather than stepping once a second.
+- **`src/main/smtc-bridge.ps1`** — one long-lived PowerShell process that polls the Windows media session and emits a JSON line whenever something changes. No native Node addon, so `npm install` never needs a compiler.
+- **`src/main/spotify.js`** — the Web API provider: PKCE sign-in with a loopback redirect, token refresh, and polling at 1s while the player is visible, 5s when hidden.
+- **`src/main/palette.js`** — extracts an accent and three wash hues from the cover in the main process.
+- **`src/renderer/`** — the display. One set of elements, rearranged per theme by a `data-theme` attribute, so every theme shares one state path. Position is extrapolated between updates so the progress bar moves smoothly.
 
-## If something looks wrong
+Background motion is transform-and-opacity only, composited on the GPU, so it costs nothing on the CPU per frame.
 
-**Tray icon appears but the screen says "Nothing playing".** Windows only
-exposes a session while something is loaded — press play in Spotify once. If it
-still doesn't appear, check that Spotify shows up in the volume-key overlay at
-the top of the screen; if it doesn't, the OS isn't seeing it either.
+## Troubleshooting
 
-**Seeking does nothing.** Some Spotify builds don't expose position control
-through the system session. Play/pause and skip use a different channel and
-should keep working.
+**"Nothing playing" while Spotify is playing.** Windows only exposes a session once something has been played — press play in Spotify once. If Spotify doesn't appear in the volume-key overlay, the OS isn't seeing it either.
 
-**Nothing happens on `npm start`.** Run it from a terminal so you can see the
-output — `[smtc]` lines report PowerShell-side problems. The script is invoked
-with `-ExecutionPolicy Bypass`, so a locked-down execution policy shouldn't
-block it, but a managed machine may still refuse.
+**Seeking does nothing.** Some Spotify builds don't expose position control through the system session. Switch to the Spotify account source, which seeks reliably.
 
-**An imported font does nothing.** The importer checks the file extension, not
-the file, so a mis-named or corrupt font is accepted and then quietly fails to
-load — the display stays on the default stack. Try the file in another app to
-confirm it's really a font.
+**Spotify controls do nothing but the track shows.** Playback control through the Web API requires Spotify Premium. Reading what's playing does not.
 
-**Artwork is soft.** With the System source, covers are upgraded through the
-iTunes catalogue automatically, which needs a working connection and an album
-that exists there. Otherwise it's the ~300px thumbnail Windows provides. The
-Spotify account source gets 640px covers directly.
+**Spotify sign-in reports the port is in use.** Something else is listening on the local callback port. Close it and try again.
 
-**Spotify: "Port 48273 is in use".** Something else on the machine is listening
-on that port. Close it and press Connect again; the port is fixed because Spotify
-requires the redirect URI to be registered exactly.
-
-**Spotify: controls do nothing but the track shows.** Playback control through
-the Web API requires Spotify Premium. Reading what's playing does not.
-
-## Possible next step
-
-If the system media session turns out to be too limited — no per-track duration
-on some builds, no seek, no shuffle/repeat state — the fallback is the Spotify
-Web API, which means an OAuth login but exposes the full player state. The
-renderer wouldn't change; only the source feeding `player:state` would.
+**An imported font does nothing.** The importer checks the file extension, not the contents; a mis-named file is accepted and then fails to load. Confirm it opens in another app.
