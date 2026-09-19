@@ -29,7 +29,7 @@ const API_BASE = 'https://api.spotify.com/v1';
 // It cannot mint a token by itself: the redirect is pinned to the loopback URI
 // registered in the dashboard and the user still approves on Spotify's page.
 // Fill this in from your app at developer.spotify.com; Settings can override it.
-const DEFAULT_CLIENT_ID = '';
+const DEFAULT_CLIENT_ID = '298c49fda6e34dccad779873b65799f8';
 const CALLBACK_PORT = 48273;
 const REDIRECT_URI = `http://127.0.0.1:${CALLBACK_PORT}/callback`;
 const SCOPES = ['user-read-playback-state', 'user-modify-playback-state', 'user-read-currently-playing'];

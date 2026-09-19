@@ -25,12 +25,8 @@ const dom = {
   clockSelect: el('clockSelect'),
   displaySelect: el('displaySelect'),
   sources: el('sources'),
-  spotifySetup: el('spotifySetup'),
-  clientId: el('clientId'),
-  spotifyConnect: el('spotifyConnect'),
   spotifyDisconnect: el('spotifyDisconnect'),
   spotifyStatusText: el('spotifyStatusText'),
-  redirectUri: el('redirectUri'),
   loginToggle: el('loginToggle'),
   closeBtn: el('closeBtn'),
 };
@@ -145,17 +141,10 @@ function renderSource() {
     button.classList.toggle('is-active', button.dataset.source === state.playbackSource);
   });
 
-  // Only rewrite the field when it isn't being typed in.
-  if (document.activeElement !== dom.clientId) dom.clientId.value = state.spotifyClientId || '';
-  dom.redirectUri.textContent = spotify.redirectUri;
-
-  dom.spotifyConnect.hidden = spotify.connected;
   dom.spotifyDisconnect.hidden = !spotify.connected;
-  dom.spotifyConnect.disabled = !((state.spotifyClientId || '').trim() || spotify.hasBundledClientId);
-  dom.clientId.placeholder = spotify.hasBundledClientId ? 'built in (override optional)' : 'from developer.spotify.com';
 
-  if (spotify.connected) setStatus('Connected.', 'ok');
-  else if (!dom.spotifyStatusText.classList.contains('is-error')) setStatus('Not connected.');
+  if (spotify.connected) setStatus('Spotify account connected.', 'ok');
+  else if (!dom.spotifyStatusText.classList.contains('is-error')) setStatus('');
 }
 
 function setStatus(text, kind) {
@@ -282,25 +271,16 @@ dom.sources.addEventListener('click', async (event) => {
   apply({ playbackSource: source });
 });
 
-// Saved on every keystroke so the tray's sign-in path sees it too.
-dom.clientId.addEventListener('input', () => {
-  apply({ spotifyClientId: dom.clientId.value.trim() });
-});
-
 async function connectSpotify() {
   setStatus('Waiting for Spotify in your browser…');
-  dom.spotifyConnect.disabled = true;
   const result = await window.settingsApi.spotifyConnect();
   spotify = result.status || spotify;
   if (!result.ok) setStatus(result.error || 'Sign-in failed.', 'error');
   renderSource();
 }
 
-dom.spotifyConnect.addEventListener('click', connectSpotify);
-
 dom.spotifyDisconnect.addEventListener('click', async () => {
   spotify = await window.settingsApi.spotifyDisconnect();
-  setStatus('Disconnected.');
   await refresh();
 });
 

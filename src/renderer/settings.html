@@ -152,21 +152,10 @@
             <span class="source-note">Web API. Reliable seek, and covers straight from Spotify.</span>
           </button>
         </div>
-        <div class="spotify-setup" id="spotifySetup">
-          <div class="row">
-            <label class="row-label" for="clientId">Client ID</label>
-            <input class="control control-text" id="clientId" type="text" spellcheck="false" autocomplete="off" placeholder="from developer.spotify.com" />
-          </div>
-          <div class="row row-actions">
-            <button class="btn" id="spotifyConnect" type="button">Connect…</button>
-            <button class="btn btn-quiet" id="spotifyDisconnect" type="button" hidden>Disconnect</button>
-            <span class="status" id="spotifyStatusText"></span>
-          </div>
-          <p class="hint" id="spotifyHint">
-            Create an app at developer.spotify.com, and add this exact redirect URI to it:
-            <code id="redirectUri"></code>
-          </p>
-        </div>
+        <p class="hint source-status">
+          <span id="spotifyStatusText"></span>
+          <button class="link" id="spotifyDisconnect" type="button" hidden>Disconnect</button>
+        </p>
       </section>
 
       <section class="group">

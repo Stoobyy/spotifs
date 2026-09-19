@@ -387,7 +387,7 @@ function pushAppearance() {
 
 /* ----------------------------------------------------------------- settings */
 
-const SETTINGS_SIZE = { width: 460, height: 940 };
+const SETTINGS_SIZE = { width: 460, height: 880 };
 
 function openSettings() {
   if (settingsWin && !settingsWin.isDestroyed()) {
