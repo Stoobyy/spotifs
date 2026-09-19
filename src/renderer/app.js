@@ -424,13 +424,44 @@ function timeOptions() {
   return options;
 }
 
+/**
+ * Writes the time into a big clock as digits plus a subordinate AM/PM. At
+ * display sizes the period is set much smaller than the digits - the way the
+ * macOS and iOS lock screens do it - which also keeps "10:56 AM" from being a
+ * third wider than "10:56" and colliding with whatever sits beside it.
+ * formatToParts keeps the locale's own ordering; a 24-hour locale simply has no
+ * dayPeriod part and gets digits alone.
+ */
+function renderBigClock(el, date) {
+  const parts = new Intl.DateTimeFormat([], timeOptions()).formatToParts(date);
+  const fragment = document.createDocumentFragment();
+  let digits = '';
+  const flush = () => {
+    if (digits.trim()) fragment.appendChild(document.createTextNode(digits.trim()));
+    digits = '';
+  };
+  for (const part of parts) {
+    if (part.type === 'dayPeriod') {
+      flush();
+      const period = document.createElement('span');
+      period.className = 'clock-period';
+      period.textContent = part.value;
+      fragment.appendChild(period);
+    } else {
+      digits += part.value;
+    }
+  }
+  flush();
+  el.replaceChildren(fragment);
+}
+
 function tickClock() {
   const now = new Date();
   dom.clock.textContent = now.toLocaleTimeString([], timeOptions());
 
   // Only theme 2 shows these, but keeping them current costs nothing and means
   // switching themes never shows a stale time for a frame.
-  if (dom.lockClock) dom.lockClock.textContent = now.toLocaleTimeString([], timeOptions());
+  if (dom.lockClock) renderBigClock(dom.lockClock, now);
   if (dom.lockDate) {
     dom.lockDate.textContent = now.toLocaleDateString([], {
       weekday: 'long',
