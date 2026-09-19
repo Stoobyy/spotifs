@@ -928,9 +928,12 @@ body.loading .empty {
      round. One markup order, reversed in flow, rather than two markup trees. */
   display: flex;
   flex-direction: column-reverse;
-  align-items: flex-start;
+  /* The block is as wide as the clock, so centring the date centres it on the
+     clock. Left-aligned it looked unanchored: the "1" and the date's first
+     letter have different side bearings, so their edges never actually met. */
+  align-items: center;
   transform: translateY(-52%);
-  text-align: left;
+  text-align: center;
   pointer-events: none;
 }
 
