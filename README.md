@@ -9,6 +9,7 @@ Works out of the box with no sign-in - it reads the same Windows media session t
 Four layouts, switchable live from Settings. All share the same backdrop options and the same playback state, so switching is instant.
 
 | | |
+| --- | --- |
 | **Classic** - big cover, landscape | **Lock Screen** - date, clock, glass card |
 | ![Classic](docs/screenshots/classic.png) | ![Lock Screen](docs/screenshots/lockscreen.png) |
 | **Split** - clock left, card right | **Dial** - analogue clock, tall card |
