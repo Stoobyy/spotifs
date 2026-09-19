@@ -2,8 +2,6 @@
 
 A full-screen now-playing display for Spotify on Windows. It lives in the system tray; click the icon and the current track fills the screen.
 
-![Classic theme](docs/screenshots/classic.png)
-
 Works out of the box with no sign-in — it reads the same Windows media session that powers the volume-key overlay. Optionally connect a Spotify account for reliable seeking and Spotify's own artwork.
 
 ## Themes
@@ -86,12 +84,17 @@ Background motion is transform-and-opacity only, composited on the GPU, so it co
 
 ## Troubleshooting
 
-**"Nothing playing" while Spotify is playing.** Windows only exposes a session once something has been played — press play in Spotify once. If Spotify doesn't appear in the volume-key overlay, the OS isn't seeing it either.
+**1. "Nothing playing" while Spotify is playing.** 
+Windows only exposes a session once something has been played — press play in Spotify once. If Spotify doesn't appear in the volume-key overlay, the OS isn't seeing it either.
 
-**Seeking does nothing.** Some Spotify builds don't expose position control through the system session. Switch to the Spotify account source, which seeks reliably.
+**2. Seeking does nothing.** 
+Some Spotify builds don't expose position control through the system session. Switch to the Spotify account source, which seeks reliably.
 
-**Spotify controls do nothing but the track shows.** Playback control through the Web API requires Spotify Premium. Reading what's playing does not.
+**3. Spotify controls do nothing but the track shows.** 
+Playback control through the Web API requires Spotify Premium. Reading what's playing does not.
 
-**Spotify sign-in reports the port is in use.** Something else is listening on the local callback port. Close it and try again.
+**4. Spotify sign-in reports the port is in use.** 
+Something else is listening on the local callback port. Close it and try again.
 
-**An imported font does nothing.** The importer checks the file extension, not the contents; a mis-named file is accepted and then fails to load. Confirm it opens in another app.
+**5. An imported font does nothing.** 
+The importer checks the file extension, not the contents; a mis-named file is accepted and then fails to load. Confirm it opens in another app.
