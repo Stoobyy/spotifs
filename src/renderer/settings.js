@@ -151,7 +151,8 @@ function renderSource() {
 
   dom.spotifyConnect.hidden = spotify.connected;
   dom.spotifyDisconnect.hidden = !spotify.connected;
-  dom.spotifyConnect.disabled = !(state.spotifyClientId || '').trim();
+  dom.spotifyConnect.disabled = !((state.spotifyClientId || '').trim() || spotify.hasBundledClientId);
+  dom.clientId.placeholder = spotify.hasBundledClientId ? 'built in (override optional)' : 'from developer.spotify.com';
 
   if (spotify.connected) setStatus('Connected.', 'ok');
   else if (!dom.spotifyStatusText.classList.contains('is-error')) setStatus('Not connected.');
@@ -322,8 +323,15 @@ async function refresh() {
   systemFonts = data.systemFonts || [];
   displays = data.displays || [];
   faceStyle.textContent = data.fontFaceCss || '';
-  spotify = await window.settingsApi.spotifyStatus();
+  // Render before anything optional: if the main process is older than this
+  // window and lacks a handler, the page must still come up fully populated.
   render();
+  try {
+    spotify = await window.settingsApi.spotifyStatus();
+    renderSource();
+  } catch (_) {
+    setStatus('Restart Now Playing to enable Spotify sign-in.', 'error');
+  }
 }
 
 refresh();

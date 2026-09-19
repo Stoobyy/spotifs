@@ -104,12 +104,16 @@ Two ways to get now-playing data, switchable from the tray menu or Settings.
 | **System** (default) | None. | Whatever the Windows media session exposes. Artwork is always upgraded through the iTunes catalogue, since Windows only hands over a ~300px thumbnail. Seek depends on the Spotify build. |
 | **Spotify account** | A one-time sign-in in your browser. | Position and controls straight from the Web API, reliable seek, 640px covers from Spotify itself. Needs Spotify Premium for the transport controls to work; that's a Spotify restriction. |
 
-**Connecting a Spotify account.** There is no shared app key; you use your own.
+**Connecting a Spotify account.** Settings → Playback source → **Connect**. Your
+browser opens Spotify's consent page; approve it and you're done.
 
-1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard), create an app, and copy its **Client ID**.
-2. In the app's settings, add this redirect URI exactly — Spotify matches it character for character, port included:
-   `http://127.0.0.1:48273/callback`
-3. In Now Playing → Settings → Playback source, paste the Client ID and press **Connect**. Your browser opens Spotify's consent page; approve it and you're done.
+The app ships with a client ID (`DEFAULT_CLIENT_ID` in `src/main/spotify.js`).
+Under PKCE that's public by design and can't do anything on its own. If you'd
+rather use your own — or the bundled one is empty in your build — create an app
+at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard),
+add this redirect URI to it exactly (Spotify matches it character for character,
+port included), and paste its Client ID into Settings:
+`http://127.0.0.1:48273/callback`
 
 The sign-in uses OAuth with PKCE, so there is no client secret anywhere. Only
 three scopes are requested — `user-read-playback-state`,

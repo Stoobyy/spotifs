@@ -6,7 +6,7 @@ const fs = require('fs');
 const { pathToFileURL } = require('url');
 
 const { SmtcBridge } = require('./smtc');
-const { SpotifyProvider, REDIRECT_URI } = require('./spotify');
+const { SpotifyProvider, REDIRECT_URI, DEFAULT_CLIENT_ID } = require('./spotify');
 const { ArtworkResolver } = require('./artwork');
 const { paletteFor } = require('./palette');
 const fonts = require('./fonts');
@@ -328,6 +328,7 @@ function spotifyStatus() {
   return {
     connected: !!(spotify && spotify.connected),
     redirectUri: REDIRECT_URI,
+    hasBundledClientId: !!DEFAULT_CLIENT_ID,
   };
 }
 
@@ -350,7 +351,7 @@ async function chooseSpotify() {
     applySettings({ playbackSource: 'spotify' });
     return;
   }
-  if (!settings.spotifyClientId) {
+  if (!settings.spotifyClientId && !DEFAULT_CLIENT_ID) {
     // Nothing to sign in with yet; Settings is where the client ID goes.
     if (tray) tray.setContextMenu(buildTrayMenu()); // un-tick the radio
     openSettings();

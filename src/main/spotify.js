@@ -25,6 +25,11 @@ const crypto = require('crypto');
 
 const AUTH_BASE = 'https://accounts.spotify.com';
 const API_BASE = 'https://api.spotify.com/v1';
+// The client ID is public by design under PKCE - every native app ships one.
+// It cannot mint a token by itself: the redirect is pinned to the loopback URI
+// registered in the dashboard and the user still approves on Spotify's page.
+// Fill this in from your app at developer.spotify.com; Settings can override it.
+const DEFAULT_CLIENT_ID = '';
 const CALLBACK_PORT = 48273;
 const REDIRECT_URI = `http://127.0.0.1:${CALLBACK_PORT}/callback`;
 const SCOPES = ['user-read-playback-state', 'user-modify-playback-state', 'user-read-currently-playing'];
@@ -127,7 +132,7 @@ class SpotifyProvider extends EventEmitter {
   authorize() {
     if (this.pendingAuth) return this.pendingAuth;
 
-    const clientId = (this.clientId() || '').trim();
+    const clientId = this._clientId();
     if (!clientId) return Promise.reject(new Error('Add your Spotify client ID first.'));
 
     const verifier = base64url(crypto.randomBytes(64));
@@ -240,7 +245,7 @@ class SpotifyProvider extends EventEmitter {
     const fresh = await this._token({
       grant_type: 'refresh_token',
       refresh_token: this.tokens.refresh_token,
-      client_id: (this.clientId() || '').trim(),
+      client_id: this._clientId(),
     });
     if (!fresh.refresh_token) fresh.refresh_token = this.tokens.refresh_token;
     this._saveTokens(fresh);
@@ -265,6 +270,15 @@ class SpotifyProvider extends EventEmitter {
       throw new Error(detail);
     }
     return body;
+  }
+
+  /** Settings override wins; the bundled ID is the fallback. */
+  _clientId() {
+    return ((this.clientId && this.clientId()) || DEFAULT_CLIENT_ID || '').trim();
+  }
+
+  get hasClientId() {
+    return !!this._clientId();
   }
 
   /** Authenticated call against the Web API. 204 is the normal success for commands. */
@@ -448,4 +462,4 @@ function page(res, heading, detail) {
   );
 }
 
-module.exports = { SpotifyProvider, REDIRECT_URI, SCOPES };
+module.exports = { SpotifyProvider, REDIRECT_URI, SCOPES, DEFAULT_CLIENT_ID };
