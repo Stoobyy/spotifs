@@ -13,3 +13,6 @@ Claude outputs/
 /*.ttc
 /*.woff
 /*.woff2
+
+# Working notes, kept locally only
+PROGRESS.md
