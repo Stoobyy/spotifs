@@ -24,7 +24,13 @@ const dom = {
   removeBtn: el('removeBtn'),
   clockSelect: el('clockSelect'),
   displaySelect: el('displaySelect'),
-  hiResToggle: el('hiResToggle'),
+  sources: el('sources'),
+  spotifySetup: el('spotifySetup'),
+  clientId: el('clientId'),
+  spotifyConnect: el('spotifyConnect'),
+  spotifyDisconnect: el('spotifyDisconnect'),
+  spotifyStatusText: el('spotifyStatusText'),
+  redirectUri: el('redirectUri'),
   loginToggle: el('loginToggle'),
   closeBtn: el('closeBtn'),
 };
@@ -37,6 +43,7 @@ const DEFAULT_HINT =
 let state = null; // settings
 let systemFonts = [];
 let displays = [];
+let spotify = { connected: false, redirectUri: '' };
 
 // Imported faces have to be declared here as well, or the preview falls back to
 // the default stack and silently shows the wrong font.
@@ -133,6 +140,29 @@ function renderPreview() {
   dom.removeBtn.hidden = !family || !isCustom(family);
 }
 
+function renderSource() {
+  Array.from(dom.sources.querySelectorAll('.source')).forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.source === state.playbackSource);
+  });
+
+  // Only rewrite the field when it isn't being typed in.
+  if (document.activeElement !== dom.clientId) dom.clientId.value = state.spotifyClientId || '';
+  dom.redirectUri.textContent = spotify.redirectUri;
+
+  dom.spotifyConnect.hidden = spotify.connected;
+  dom.spotifyDisconnect.hidden = !spotify.connected;
+  dom.spotifyConnect.disabled = !(state.spotifyClientId || '').trim();
+
+  if (spotify.connected) setStatus('Connected.', 'ok');
+  else if (!dom.spotifyStatusText.classList.contains('is-error')) setStatus('Not connected.');
+}
+
+function setStatus(text, kind) {
+  dom.spotifyStatusText.textContent = text;
+  dom.spotifyStatusText.classList.toggle('is-ok', kind === 'ok');
+  dom.spotifyStatusText.classList.toggle('is-error', kind === 'error');
+}
+
 function renderDisplays() {
   dom.displaySelect.replaceChildren();
   displays.forEach((display) => {
@@ -154,9 +184,9 @@ function render() {
   renderFontOptions();
   renderPreview();
   renderDisplays();
+  renderSource();
 
   dom.clockSelect.value = state.clock24h === true ? '24' : state.clock24h === false ? '12' : 'auto';
-  dom.hiResToggle.checked = !!state.hiResArtwork;
   dom.loginToggle.checked = !!state.launchAtLogin;
 }
 
@@ -237,7 +267,46 @@ dom.displaySelect.addEventListener('change', () => {
   apply({ displayId: Number(dom.displaySelect.value) });
 });
 
-dom.hiResToggle.addEventListener('change', () => apply({ hiResArtwork: dom.hiResToggle.checked }));
+dom.sources.addEventListener('click', async (event) => {
+  const button = event.target.closest('.source');
+  if (!button) return;
+  const source = button.dataset.source;
+  // Picking Spotify with no token yet is a sign-in, not a setting change; the
+  // main process flips the setting itself once the redirect comes back.
+  if (source === 'spotify' && !spotify.connected) {
+    await connectSpotify();
+    if (spotify.connected) apply({ playbackSource: 'spotify' });
+    return;
+  }
+  apply({ playbackSource: source });
+});
+
+// Saved on every keystroke so the tray's sign-in path sees it too.
+dom.clientId.addEventListener('input', () => {
+  apply({ spotifyClientId: dom.clientId.value.trim() });
+});
+
+async function connectSpotify() {
+  setStatus('Waiting for Spotify in your browser…');
+  dom.spotifyConnect.disabled = true;
+  const result = await window.settingsApi.spotifyConnect();
+  spotify = result.status || spotify;
+  if (!result.ok) setStatus(result.error || 'Sign-in failed.', 'error');
+  renderSource();
+}
+
+dom.spotifyConnect.addEventListener('click', connectSpotify);
+
+dom.spotifyDisconnect.addEventListener('click', async () => {
+  spotify = await window.settingsApi.spotifyDisconnect();
+  setStatus('Disconnected.');
+  await refresh();
+});
+
+window.settingsApi.onSpotifyStatus((status) => {
+  spotify = status;
+  if (state) renderSource();
+});
 dom.loginToggle.addEventListener('change', () => apply({ launchAtLogin: dom.loginToggle.checked }));
 
 dom.closeBtn.addEventListener('click', () => window.settingsApi.close());
@@ -253,6 +322,7 @@ async function refresh() {
   systemFonts = data.systemFonts || [];
   displays = data.displays || [];
   faceStyle.textContent = data.fontFaceCss || '';
+  spotify = await window.settingsApi.spotifyStatus();
   render();
 }
 

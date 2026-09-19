@@ -6,6 +6,7 @@ const fs = require('fs');
 const { pathToFileURL } = require('url');
 
 const { SmtcBridge } = require('./smtc');
+const { SpotifyProvider, REDIRECT_URI } = require('./spotify');
 const { ArtworkResolver } = require('./artwork');
 const { paletteFor } = require('./palette');
 const fonts = require('./fonts');
@@ -18,7 +19,9 @@ const ICON_PNG = path.join(ROOT, 'build', 'icon-256.png');
 let win = null;
 let settingsWin = null;
 let tray = null;
-let bridge = null;
+let bridge = null; // SmtcBridge
+let spotify = null; // SpotifyProvider
+let provider = null; // whichever of the two is active
 let artwork = null;
 let settings = null;
 let currentState = { hasTrack: false, playing: false };
@@ -34,8 +37,9 @@ function settingsPath() {
 function loadSettings() {
   const defaults = {
     displayId: null,
-    hiResArtwork: true,
     launchAtLogin: false,
+    playbackSource: 'system', // 'system' (SMTC, zero setup) | 'spotify' (Web API, opt-in)
+    spotifyClientId: '', // from the user's own Spotify developer app; PKCE, so no secret
     theme: 'classic', // 'classic' | 'lockscreen' | 'split' | 'dial'
     background: 'cover', // 'cover' | 'hues' | 'solid' | 'image'
     backgroundColor: '#161a24', // used when background is 'solid'
@@ -132,6 +136,7 @@ function showPlayer() {
   win.show();
   win.focus();
   win.webContents.send('player:visible', true);
+  if (spotify) spotify.setVisible(true);
 }
 
 function hidePlayer() {
@@ -139,6 +144,7 @@ function hidePlayer() {
   win.webContents.send('player:visible', false);
   win.setAlwaysOnTop(false);
   win.hide();
+  if (spotify) spotify.setVisible(false);
 }
 
 function togglePlayer() {
@@ -159,6 +165,24 @@ function buildTrayMenu() {
   return Menu.buildFromTemplate([
     { label: 'Open Now Playing', click: showPlayer },
     { label: 'Settings…', click: openSettings },
+    { type: 'separator' },
+    {
+      label: 'Playback source',
+      submenu: [
+        {
+          label: 'System (default)',
+          type: 'radio',
+          checked: settings.playbackSource !== 'spotify',
+          click: () => applySettings({ playbackSource: 'system' }),
+        },
+        {
+          label: spotify && spotify.connected ? 'Spotify account' : 'Spotify account (sign in…)',
+          type: 'radio',
+          checked: settings.playbackSource === 'spotify',
+          click: () => chooseSpotify(),
+        },
+      ],
+    },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -202,7 +226,7 @@ function toFileUrl(filePath) {
 function pushState(force = false) {
   if (!win || win.isDestroyed()) return;
 
-  const hiRes = settings.hiResArtwork ? currentState.hiResPath : '';
+  const hiRes = currentState.hiResPath || '';
   const source = hiRes || currentState.artPath;
 
   const payload = Object.assign({}, currentState, {
@@ -215,8 +239,10 @@ function pushState(force = false) {
   win.webContents.send('player:state', payload);
 }
 
+// The SMTC thumbnail is ~300px, so the system source always upgrades through
+// the iTunes catalogue. The Spotify source already hands us 640px covers.
 function fetchHiResArtwork() {
-  if (!artwork || !settings.hiResArtwork) return;
+  if (!artwork || settings.playbackSource === 'spotify') return;
   if (!currentState.hasTrack || currentState.hiResPath) return;
 
   const key = currentState.trackKey;
@@ -237,6 +263,106 @@ function onState(state) {
   pushState();
 
   if (trackChanged) fetchHiResArtwork();
+}
+
+/* ------------------------------------------------------------- providers */
+
+function onProviderLog(entry) {
+  if (!entry) return;
+  (entry.level === 'error' ? console.error : console.log)('[spotify]', entry.message);
+}
+
+function createSpotify() {
+  const instance = new SpotifyProvider({
+    clientId: () => settings.spotifyClientId,
+    // Separate from settings.json on purpose: the refresh token is a
+    // credential, and %APPDATA%\spotifs is where it was asked to live.
+    tokenFile: path.join(app.getPath('appData'), 'spotifs', 'spotify-auth.json'),
+    cacheDir: path.join(app.getPath('userData'), 'artwork'),
+  });
+  instance.on('log', onProviderLog);
+  instance.on('status', (status) => {
+    if (tray) tray.setContextMenu(buildTrayMenu());
+    if (!status.connected && status.reason) console.log('[spotify]', status.reason);
+    broadcastSpotifyStatus();
+  });
+  return instance;
+}
+
+/**
+ * Starts whichever source settings ask for and stops the other. The bridge is
+ * a PowerShell process, so it is actually shut down rather than left polling,
+ * and the two are never both feeding state.
+ */
+function startProvider() {
+  const wantSpotify = settings.playbackSource === 'spotify';
+  if (provider) provider.removeListener('state', onState);
+
+  if (wantSpotify) {
+    if (bridge) {
+      bridge.stop();
+      bridge = null;
+    }
+    if (!spotify) spotify = createSpotify();
+    provider = spotify;
+  } else {
+    if (spotify) spotify.stop();
+    if (!bridge) {
+      bridge = new SmtcBridge();
+      bridge.on('status', (status) => {
+        if (!status.connected) console.error('[bridge]', status.reason || 'disconnected');
+      });
+    }
+    provider = bridge;
+  }
+
+  provider.on('state', onState);
+  currentState = { hasTrack: false, playing: false };
+  pushState(true);
+  provider.start();
+  if (provider === spotify) spotify.setVisible(!!(win && !win.isDestroyed() && win.isVisible()));
+  if (tray) tray.setContextMenu(buildTrayMenu());
+}
+
+function spotifyStatus() {
+  return {
+    connected: !!(spotify && spotify.connected),
+    redirectUri: REDIRECT_URI,
+  };
+}
+
+function broadcastSpotifyStatus() {
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.webContents.send('spotify:status', spotifyStatus());
+  }
+}
+
+/** Sign in if there is no token yet; constructing the provider does not poll. */
+async function connectSpotify() {
+  if (!spotify) spotify = createSpotify();
+  await spotify.authorize();
+  broadcastSpotifyStatus();
+}
+
+/** Tray path into the Spotify source. */
+async function chooseSpotify() {
+  if (spotify && spotify.connected) {
+    applySettings({ playbackSource: 'spotify' });
+    return;
+  }
+  if (!settings.spotifyClientId) {
+    // Nothing to sign in with yet; Settings is where the client ID goes.
+    if (tray) tray.setContextMenu(buildTrayMenu()); // un-tick the radio
+    openSettings();
+    return;
+  }
+  try {
+    await connectSpotify();
+    applySettings({ playbackSource: 'spotify' });
+  } catch (err) {
+    console.error('[spotify]', err.message);
+    if (tray) tray.setContextMenu(buildTrayMenu());
+  }
 }
 
 /* --------------------------------------------------------------- appearance */
@@ -260,7 +386,7 @@ function pushAppearance() {
 
 /* ----------------------------------------------------------------- settings */
 
-const SETTINGS_SIZE = { width: 460, height: 900 };
+const SETTINGS_SIZE = { width: 460, height: 940 };
 
 function openSettings() {
   if (settingsWin && !settingsWin.isDestroyed()) {
@@ -338,9 +464,8 @@ function applySettings(patch) {
     if (win && !win.isDestroyed() && win.isVisible()) showPlayer();
   }
 
-  if ('hiResArtwork' in patch && patch.hiResArtwork !== before.hiResArtwork) {
-    if (patch.hiResArtwork) fetchHiResArtwork();
-    pushState(true);
+  if ('playbackSource' in patch && patch.playbackSource !== before.playbackSource) {
+    startProvider();
   }
 
   if (
@@ -372,12 +497,7 @@ if (!app.requestSingleInstanceLock()) {
     createWindow();
     createTray();
 
-    bridge = new SmtcBridge();
-    bridge.on('state', onState);
-    bridge.on('status', (status) => {
-      if (!status.connected) console.error('[bridge]', status.reason || 'disconnected');
-    });
-    bridge.start();
+    startProvider();
 
     ipcMain.on('player:ready', () => {
       pushAppearance();
@@ -385,21 +505,37 @@ if (!app.requestSingleInstanceLock()) {
     });
     ipcMain.on('player:close', hidePlayer);
     ipcMain.on('player:command', (_event, command, value) => {
-      if (!bridge) return;
+      if (!provider) return;
       switch (command) {
         case 'playpause':
         case 'play':
         case 'pause':
         case 'next':
         case 'prev':
-          bridge.send(command);
+          provider.send(command);
           break;
         case 'seek':
-          if (Number.isFinite(value)) bridge.send(`seek ${Math.max(0, Math.round(value))}`);
+          if (Number.isFinite(value)) provider.send(`seek ${Math.max(0, Math.round(value))}`);
           break;
         default:
           break;
       }
+    });
+
+    ipcMain.handle('spotify:status', () => spotifyStatus());
+    ipcMain.handle('spotify:connect', async () => {
+      try {
+        await connectSpotify();
+        return { ok: true, status: spotifyStatus() };
+      } catch (err) {
+        return { ok: false, error: err.message, status: spotifyStatus() };
+      }
+    });
+    ipcMain.handle('spotify:disconnect', () => {
+      if (spotify) spotify.disconnect();
+      if (settings.playbackSource === 'spotify') applySettings({ playbackSource: 'system' });
+      broadcastSpotifyStatus();
+      return spotifyStatus();
     });
 
     ipcMain.handle('settings:get', async () => ({
@@ -489,5 +625,6 @@ if (!app.requestSingleInstanceLock()) {
   app.on('before-quit', () => {
     quitting = true;
     if (bridge) bridge.stop();
+    if (spotify) spotify.stop();
   });
 }

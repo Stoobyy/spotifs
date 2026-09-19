@@ -3,9 +3,11 @@
 A full-screen now-playing display for Spotify on Windows. Lives in the system
 tray; click the tray icon and the current track fills the screen.
 
-No Spotify login, no developer account, no modifications to the Spotify client.
-It reads the same system media session that powers the Windows volume-key
-overlay, so it works the moment Spotify is playing.
+By default there is no Spotify login, no developer account and no modification
+to the Spotify client: it reads the same system media session that powers the
+Windows volume-key overlay, so it works the moment Spotify is playing. If you
+want reliable seeking and Spotify's own artwork, you can optionally connect your
+Spotify account instead (see *Playback source* below).
 
 ## Requirements
 
@@ -93,6 +95,32 @@ it's running and you'll need to restart before it shows up.
 The controls and close button fade out after ~3 seconds of stillness and come
 back on any mouse movement. The clock stays.
 
+### Playback source
+
+Two ways to get now-playing data, switchable from the tray menu or Settings.
+
+| Source | Setup | What you get |
+| --- | --- | --- |
+| **System** (default) | None. | Whatever the Windows media session exposes. Artwork is always upgraded through the iTunes catalogue, since Windows only hands over a ~300px thumbnail. Seek depends on the Spotify build. |
+| **Spotify account** | A one-time sign-in in your browser. | Position and controls straight from the Web API, reliable seek, 640px covers from Spotify itself. Needs Spotify Premium for the transport controls to work; that's a Spotify restriction. |
+
+**Connecting a Spotify account.** There is no shared app key; you use your own.
+
+1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard), create an app, and copy its **Client ID**.
+2. In the app's settings, add this redirect URI exactly — Spotify matches it character for character, port included:
+   `http://127.0.0.1:48273/callback`
+3. In Now Playing → Settings → Playback source, paste the Client ID and press **Connect**. Your browser opens Spotify's consent page; approve it and you're done.
+
+The sign-in uses OAuth with PKCE, so there is no client secret anywhere. Only
+three scopes are requested — `user-read-playback-state`,
+`user-modify-playback-state`, `user-read-currently-playing` — which is exactly
+what the UI needs and nothing more. The refresh token is kept in
+`%APPDATA%\spotifs\spotify-auth.json`, separate from settings, and access tokens
+are renewed silently before they expire. **Disconnect** deletes it.
+
+The Web API has no push channel, so the app polls `/me/player` once a second
+while the player is on screen and every five seconds when it's hidden.
+
 ## How it works
 
 ```
@@ -148,9 +176,17 @@ the file, so a mis-named or corrupt font is accepted and then quietly fails to
 load — the display stays on the default stack. Try the file in another app to
 confirm it's really a font.
 
-**Artwork is soft.** Turn on "High-resolution artwork" in Settings; it
-needs a working internet connection and only matches albums that exist in the
-iTunes catalogue.
+**Artwork is soft.** With the System source, covers are upgraded through the
+iTunes catalogue automatically, which needs a working connection and an album
+that exists there. Otherwise it's the ~300px thumbnail Windows provides. The
+Spotify account source gets 640px covers directly.
+
+**Spotify: "Port 48273 is in use".** Something else on the machine is listening
+on that port. Close it and press Connect again; the port is fixed because Spotify
+requires the redirect URI to be registered exactly.
+
+**Spotify: controls do nothing but the track shows.** Playback control through
+the Web API requires Spotify Premium. Reading what's playing does not.
 
 ## Possible next step
 

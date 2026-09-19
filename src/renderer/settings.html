@@ -141,15 +141,36 @@
       </section>
 
       <section class="group">
+        <h2 class="group-title">Playback source</h2>
+        <div class="sources" id="sources">
+          <button class="source" data-source="system" type="button">
+            <span class="source-name">System</span>
+            <span class="source-note">Windows media session. No sign-in. Artwork upgraded via iTunes.</span>
+          </button>
+          <button class="source" data-source="spotify" type="button">
+            <span class="source-name">Spotify account</span>
+            <span class="source-note">Web API. Reliable seek, and covers straight from Spotify.</span>
+          </button>
+        </div>
+        <div class="spotify-setup" id="spotifySetup">
+          <div class="row">
+            <label class="row-label" for="clientId">Client ID</label>
+            <input class="control control-text" id="clientId" type="text" spellcheck="false" autocomplete="off" placeholder="from developer.spotify.com" />
+          </div>
+          <div class="row row-actions">
+            <button class="btn" id="spotifyConnect" type="button">Connect…</button>
+            <button class="btn btn-quiet" id="spotifyDisconnect" type="button" hidden>Disconnect</button>
+            <span class="status" id="spotifyStatusText"></span>
+          </div>
+          <p class="hint" id="spotifyHint">
+            Create an app at developer.spotify.com, and add this exact redirect URI to it:
+            <code id="redirectUri"></code>
+          </p>
+        </div>
+      </section>
+
+      <section class="group">
         <h2 class="group-title">General</h2>
-        <label class="toggle">
-          <input type="checkbox" id="hiResToggle" />
-          <span class="toggle-track"><span class="toggle-knob"></span></span>
-          <span class="toggle-text">
-            High-resolution artwork
-            <small>Upgrades Spotify's small cover via the iTunes catalogue</small>
-          </span>
-        </label>
         <label class="toggle">
           <input type="checkbox" id="loginToggle" />
           <span class="toggle-track"><span class="toggle-knob"></span></span>
