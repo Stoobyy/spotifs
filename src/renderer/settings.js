@@ -40,6 +40,7 @@ let state = null; // settings
 let systemFonts = [];
 let displays = [];
 let spotify = { connected: false, redirectUri: '' };
+let platform = { win: true, mac: false };
 
 // Imported faces have to be declared here as well, or the preview falls back to
 // the default stack and silently shows the wrong font.
@@ -139,7 +140,10 @@ function renderPreview() {
 function renderSource() {
   Array.from(dom.sources.querySelectorAll('.source')).forEach((button) => {
     button.classList.toggle('is-active', button.dataset.source === state.playbackSource);
+    // The System source is the Windows media session; it does not exist elsewhere.
+    if (button.dataset.source === 'system') button.hidden = !platform.win;
   });
+  dom.sources.classList.toggle('sources-single', !platform.win);
 
   dom.spotifyDisconnect.hidden = !spotify.connected;
 
@@ -302,6 +306,7 @@ async function refresh() {
   state = data.settings;
   systemFonts = data.systemFonts || [];
   displays = data.displays || [];
+  platform = data.platform || platform;
   faceStyle.textContent = data.fontFaceCss || '';
   // Render before anything optional: if the main process is older than this
   // window and lacks a handler, the page must still come up fully populated.

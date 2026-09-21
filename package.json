@@ -7,7 +7,7 @@
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder"
   },
   "devDependencies": {
     "electron": ">=30.0.0",
@@ -36,6 +36,20 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Now Playing"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.music",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "AudioVideo",
+      "icon": "build/icon.png"
     }
   }
 }

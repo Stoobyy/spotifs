@@ -29,16 +29,25 @@ function fontDir() {
 function listSystemFonts() {
   if (systemCache) return Promise.resolve(systemCache);
 
-  const script =
-    'Add-Type -AssemblyName System.Drawing; ' +
-    '(New-Object System.Drawing.Text.InstalledFontCollection).Families | ' +
-    'ForEach-Object { $_.Name }';
+  // Windows: PowerShell's InstalledFontCollection. Everywhere else: fontconfig,
+  // which every Linux desktop has and Homebrew installs on macOS; without it the
+  // list is simply empty and importing a file still works.
+  const command =
+    process.platform === 'win32'
+      ? [
+          'powershell.exe',
+          ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
+            'Add-Type -AssemblyName System.Drawing; ' +
+            '(New-Object System.Drawing.Text.InstalledFontCollection).Families | ' +
+            'ForEach-Object { $_.Name }'],
+        ]
+      : ['fc-list', [':', 'family']];
 
   return new Promise((resolve) => {
     execFile(
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
-      { windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
+      command[0],
+      command[1],
+      { windowsHide: true, timeout: 15000, maxBuffer: 4 * 1024 * 1024 },
       (err, stdout) => {
         if (err) {
           console.error('[fonts]', err.message);
@@ -47,6 +56,8 @@ function listSystemFonts() {
         }
         const names = String(stdout)
           .split(/\r?\n/)
+          // fc-list prints "Family A,Family B" for faces with several names.
+          .flatMap((line) => line.split(','))
           .map((line) => line.trim())
           .filter(Boolean);
         systemCache = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));

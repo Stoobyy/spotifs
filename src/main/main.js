@@ -13,6 +13,11 @@ const fonts = require('./fonts');
 const wallpaper = require('./wallpaper');
 
 const ROOT = path.join(__dirname, '..', '..');
+
+// The System source is the Windows media session; there is nothing to spawn
+// anywhere else, so off Windows it does not exist and Spotify is the source.
+const IS_WIN = process.platform === 'win32';
+const IS_MAC = process.platform === 'darwin';
 const ICON_ICO = path.join(ROOT, 'build', 'icon.ico');
 const ICON_PNG = path.join(ROOT, 'build', 'icon-256.png');
 
@@ -38,7 +43,7 @@ function loadSettings() {
   const defaults = {
     displayId: null,
     launchAtLogin: false,
-    playbackSource: 'system', // 'system' (SMTC, zero setup) | 'spotify' (Web API, opt-in)
+    playbackSource: IS_WIN ? 'system' : 'spotify', // 'system' is Windows-only
     spotifyClientId: '', // from the user's own Spotify developer app; PKCE, so no secret
     theme: 'classic', // 'classic' | 'lockscreen' | 'split' | 'dial'
     background: 'cover', // 'cover' | 'hues' | 'solid' | 'image'
@@ -55,6 +60,8 @@ function loadSettings() {
     merged.backgroundImage = wallpaper.prune(merged.backgroundImage);
     // A background of 'image' with no image left is just a black screen.
     if (merged.background === 'image' && !merged.backgroundImage) merged.background = 'cover';
+    // A settings file carried over from Windows could still say 'system'.
+    if (!IS_WIN) merged.playbackSource = 'spotify';
     return merged;
   } catch (_) {
     return defaults;
@@ -86,12 +93,17 @@ function createWindow() {
     // of caption colour along the top edge. Dropping the resize frame removes
     // it, and squares off Windows 11's rounded corners at the same time. Costs
     // only the shadow and open/close animation, neither of which a display this
-    // size wants.
-    resizable: false,
+    // size wants. Elsewhere the window has to stay resizable and fullscreenable
+    // or the window manager refuses to make it full screen at all.
+    resizable: !IS_WIN,
     thickFrame: false,
     maximizable: false,
     backgroundColor: '#000000',
-    fullscreenable: false,
+    fullscreenable: !IS_WIN,
+    // macOS: pre-Lion style full screen, which fills the display without the
+    // Spaces slide animation and without creating a separate desktop for a
+    // window that is shown and hidden many times a day.
+    simpleFullscreen: IS_MAC,
     autoHideMenuBar: true,
     skipTaskbar: false,
     title: 'Now Playing',
@@ -120,11 +132,28 @@ function createWindow() {
   });
 }
 
-// Deliberately *not* Electron's full-screen mode. The window is frameless, so
-// full screen buys nothing visually, and on Windows leaving it while hiding
-// leaves the compositor holding a black full-screen surface the user has to
-// alt-tab away from. Sizing a frameless window to the display and pinning it
+// On Windows this is deliberately *not* Electron's full-screen mode. The window
+// is frameless, so full screen buys nothing visually, and leaving it while
+// hiding leaves the compositor holding a black full-screen surface the user has
+// to alt-tab away from. A frameless window sized to the display and pinned
 // above the taskbar looks the same and has no state to get stuck in.
+//
+// Elsewhere the opposite is true: a plain always-on-top window does not cover
+// GNOME's top bar or the dock, and the only thing that does is real full
+// screen. macOS gets the simple (non-Spaces) variant set on the window.
+function enterFullScreen() {
+  if (IS_MAC) win.setSimpleFullScreen(true);
+  else win.setFullScreen(true);
+}
+
+function leaveFullScreen() {
+  if (IS_MAC) {
+    if (win.isSimpleFullScreen()) win.setSimpleFullScreen(false);
+  } else if (win.isFullScreen()) {
+    win.setFullScreen(false);
+  }
+}
+
 function showPlayer() {
   if (!win || win.isDestroyed()) createWindow();
 
@@ -132,8 +161,13 @@ function showPlayer() {
   win.setBounds(display.bounds);
   currentDisplayId = display.id;
 
-  win.setAlwaysOnTop(true, 'screen-saver'); // 'screen-saver' clears the taskbar
-  win.show();
+  if (IS_WIN) {
+    win.setAlwaysOnTop(true, 'screen-saver'); // 'screen-saver' clears the taskbar
+    win.show();
+  } else {
+    win.show();
+    enterFullScreen();
+  }
   win.focus();
   win.webContents.send('player:visible', true);
   if (spotify) spotify.setVisible(true);
@@ -142,7 +176,13 @@ function showPlayer() {
 function hidePlayer() {
   if (!win || win.isDestroyed()) return;
   win.webContents.send('player:visible', false);
-  win.setAlwaysOnTop(false);
+  if (IS_WIN) {
+    win.setAlwaysOnTop(false);
+  } else {
+    // Drop full screen before hiding so the window manager restores the panels;
+    // hiding a full-screen window first can leave them suppressed.
+    leaveFullScreen();
+  }
   win.hide();
   if (spotify) spotify.setVisible(false);
 }
@@ -166,7 +206,7 @@ function buildTrayMenu() {
     { label: 'Open Now Playing', click: showPlayer },
     { label: 'Settings…', click: openSettings },
     { type: 'separator' },
-    {
+    ...(IS_WIN ? [{
       label: 'Playback source',
       submenu: [
         {
@@ -182,7 +222,7 @@ function buildTrayMenu() {
           click: () => chooseSpotify(),
         },
       ],
-    },
+    }] : []),
     { type: 'separator' },
     {
       label: 'Quit',
@@ -295,7 +335,7 @@ function createSpotify() {
  * and the two are never both feeding state.
  */
 function startProvider() {
-  const wantSpotify = settings.playbackSource === 'spotify';
+  const wantSpotify = !IS_WIN || settings.playbackSource === 'spotify';
   if (provider) provider.removeListener('state', onState);
 
   if (wantSpotify) {
@@ -417,7 +457,7 @@ function openSettings() {
 
   // The player sits at screen-saver level, so the settings window has to as
   // well or it opens behind the thing it is configuring.
-  settingsWin.setAlwaysOnTop(true, 'screen-saver');
+  settingsWin.setAlwaysOnTop(true, IS_WIN || IS_MAC ? 'screen-saver' : 'normal');
 
   settingsWin.once('ready-to-show', () => {
     settingsWin.show();
@@ -541,6 +581,7 @@ if (!app.requestSingleInstanceLock()) {
 
     ipcMain.handle('settings:get', async () => ({
       settings: settingsForUi(),
+      platform: { win: IS_WIN, mac: IS_MAC },
       displays: displayList(),
       systemFonts: await fonts.listSystemFonts(),
       // The preview has to be able to name imported faces too.

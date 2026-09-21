@@ -32,10 +32,10 @@ Any font installed on the PC, or import a `.ttf`, `.otf`, `.ttc`, `.woff` or `.w
 
 | Source | Setup | Notes |
 | --- | --- | --- |
-| **System** (default) | None | Reads the Windows media session. Artwork is upgraded via the iTunes catalogue, since Windows only provides a small thumbnail. Seek availability depends on the Spotify build. |
+| **System** (default on Windows) | None | Reads the Windows media session. Artwork is upgraded via the iTunes catalogue, since Windows only provides a small thumbnail. Seek availability depends on the Spotify build. Windows only. |
 | **Spotify account** | One-time browser sign-in | Reads the Spotify Web API directly. Reliable seek, covers straight from Spotify. Transport controls require Spotify Premium (a Spotify restriction). |
 
-Switch between them from the tray menu or Settings. Choosing *Spotify account* opens Spotify's consent page in your browser; approve it and you're connected. Sign-in uses OAuth with PKCE and requests only the three scopes the display needs: `user-read-playback-state`, `user-modify-playback-state`, `user-read-currently-playing`. Tokens are stored locally and refreshed silently. **Disconnect** removes them.
+On macOS and Linux only the Spotify account source is available. Switch between them from the tray menu or Settings. Choosing *Spotify account* opens Spotify's consent page in your browser; approve it and you're connected. Sign-in uses OAuth with PKCE and requests only the three scopes the display needs: `user-read-playback-state`, `user-modify-playback-state`, `user-read-currently-playing`. Tokens are stored locally and refreshed silently. **Disconnect** removes them.
 
 ## Controls
 
@@ -52,7 +52,7 @@ The controls and close button fade after a few seconds of stillness and return o
 
 ## Install
 
-**Requirements:** Windows 10 or 11, the Spotify desktop app, and Node.js 18+ to build.
+**Requirements:** Windows 10/11, macOS, or Linux; the Spotify desktop app; Node.js 18+ to build.
 
 ```powershell
 git clone https://github.com/Stoobyy/spotifs.git
@@ -61,11 +61,13 @@ npm install
 npm start
 ```
 
-The app starts hidden — look for the tray icon. To build an installer:
+The app starts hidden — look for the tray icon (menu bar on macOS). To build an installer for the current platform — NSIS on Windows, DMG on macOS, AppImage on Linux:
 
 ```powershell
 npm run dist
 ```
+
+On GNOME the tray icon needs the AppIndicator extension.
 
 ## How it works
 

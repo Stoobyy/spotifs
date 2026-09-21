@@ -646,6 +646,10 @@ input[type="color"]::-webkit-color-swatch {
   gap: 9px;
 }
 
+.sources.sources-single {
+  grid-template-columns: 1fr;
+}
+
 .source {
   -webkit-app-region: no-drag;
   display: block;
