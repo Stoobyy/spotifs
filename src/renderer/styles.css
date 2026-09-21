@@ -950,16 +950,6 @@ body.loading .empty {
   margin-block: -0.08em;
 }
 
-/* The AM/PM at ~40% of the digit height, sitting on the baseline. Applies to
-   every theme that uses the big clock; a 24-hour locale never emits the span. */
-.lock-clock .clock-period {
-  font-size: 0.4em;
-  font-weight: 600;
-  letter-spacing: 0;
-  margin-left: 0.16em;
-  vertical-align: baseline;
-}
-
 :root[data-theme="split"] .lock-date {
   margin-top: clamp(2px, 0.6vh, 10px);
   font-size: clamp(22px, 2.6vw, 50px);

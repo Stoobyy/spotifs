@@ -425,34 +425,20 @@ function timeOptions() {
 }
 
 /**
- * Writes the time into a big clock as digits plus a subordinate AM/PM. At
- * display sizes the period is set much smaller than the digits - the way the
- * macOS and iOS lock screens do it - which also keeps "10:56 AM" from being a
- * third wider than "10:56" and colliding with whatever sits beside it.
- * formatToParts keeps the locale's own ordering; a 24-hour locale simply has no
- * dayPeriod part and gets digits alone.
+ * Writes the time into a big clock without its AM/PM. This is what the iOS and
+ * macOS lock screens do in 12-hour mode: at that size the period is noise, and
+ * anyone looking at the screen knows which half of the day it is. The 12/24
+ * setting still decides whether the digits read 10:56 or 22:56. formatToParts
+ * isolates the period so it can be dropped regardless of where the locale puts
+ * it; the small corner clock keeps it, since at 14px it reads as a status bar.
  */
 function renderBigClock(el, date) {
   const parts = new Intl.DateTimeFormat([], timeOptions()).formatToParts(date);
-  const fragment = document.createDocumentFragment();
-  let digits = '';
-  const flush = () => {
-    if (digits.trim()) fragment.appendChild(document.createTextNode(digits.trim()));
-    digits = '';
-  };
-  for (const part of parts) {
-    if (part.type === 'dayPeriod') {
-      flush();
-      const period = document.createElement('span');
-      period.className = 'clock-period';
-      period.textContent = part.value;
-      fragment.appendChild(period);
-    } else {
-      digits += part.value;
-    }
-  }
-  flush();
-  el.replaceChildren(fragment);
+  el.textContent = parts
+    .filter((part) => part.type !== 'dayPeriod')
+    .map((part) => part.value)
+    .join('')
+    .trim();
 }
 
 function tickClock() {
